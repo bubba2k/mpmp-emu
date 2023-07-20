@@ -1,0 +1,10 @@
+[package]
+name = "mpmp-emu"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+hex = "0.4.3"
+masm = { git = "https://gitlab.com/moseschmiedel/masm", tag = "v1.3.0" }
