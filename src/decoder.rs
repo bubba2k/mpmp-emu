@@ -1,5 +1,7 @@
 use std::fmt::Display;
 
+use crate::ir::*;
+
 pub struct InstructionWord {
     buffer: u32, // A bitfield, essentially. We only need 20 bits but this is still the easiest way
                  // to do it
@@ -101,6 +103,7 @@ impl InstructionWord {
             Some(val) => val,
             None => {
                 // Print a warning indicating unknown opcode and return NOP
+                // Might want more solid error handling later on
                 eprintln!("Unknown opcode in {:#8x}", self.buffer);
                 Opcode::NOP
             }
@@ -141,11 +144,130 @@ impl InstructionWord {
     fn get_load_address(&self) -> u32 {
         self.get_bits(4, 6).unwrap()
     }
+
+    fn get_unary_op(&self) -> UnaryOp {
+        UnaryOp {
+            target: self.get_target(),
+            source_a: self.get_op_a(),
+        }
+    }
+
+    fn get_binary_op(&self) -> BinaryOp {
+        BinaryOp {
+            target: self.get_target(),
+            source_a: self.get_op_a(),
+            source_b: self.get_op_b(),
+        }
+    }
+
+    fn get_ternary_op(&self) -> TernaryOp {
+        TernaryOp {
+            target: self.get_target(),
+            source_a: self.get_op_a(),
+            source_b: self.get_op_b(),
+            source_c: self.get_op_c(),
+        }
+    }
 }
 
 impl Display for InstructionWord {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{:#b}", self.buffer)
+    }
+}
+
+use super::ir;
+// TODO: Test this. Test it good.
+// Parse an operation from an instruction word.
+impl From<InstructionWord> for ir::Operation {
+    fn from(iw: InstructionWord) -> Self {
+        return match iw.get_opcode() {
+            Opcode::ADD => Operation::Add(iw.get_binary_op()),
+            Opcode::ADD3 => Operation::Add3(iw.get_ternary_op()),
+            Opcode::ADC => Operation::AddCarry(iw.get_binary_op()),
+            Opcode::SUB => Operation::Sub(iw.get_binary_op()),
+            Opcode::SUBC => Operation::SubCarry(iw.get_binary_op()),
+            Opcode::INC => Operation::Inc(iw.get_unary_op()),
+            Opcode::DEC => Operation::Dec(iw.get_unary_op()),
+            Opcode::MUL => Operation::Multiply(iw.get_binary_op()),
+            Opcode::TST => Operation::Test(iw.get_binary_op()),
+            Opcode::AND => Operation::And(iw.get_binary_op()),
+            Opcode::OR => Operation::Or(iw.get_binary_op()),
+            Opcode::NOT => Operation::Not(iw.get_unary_op()),
+            Opcode::NEG => Operation::Neg(iw.get_unary_op()),
+            Opcode::XOR => Operation::Xor(iw.get_binary_op()),
+            Opcode::XNOR => Operation::Xnor(iw.get_binary_op()),
+            Opcode::SHL => Operation::ShiftLeft(iw.get_binary_op()),
+            Opcode::SHR => Operation::ShiftRight(iw.get_binary_op()),
+            Opcode::MOV => Operation::Move(iw.get_unary_op()),
+
+            // Absolute jumps
+            Opcode::JMP => Operation::Jump {
+                target: JumpTarget::AbsoluteAdressRegister(iw.get_op_a()),
+                condition: JumpCondition::Always,
+            },
+            Opcode::JZ => Operation::Jump {
+                target: JumpTarget::AbsoluteAdressRegister(iw.get_op_a()),
+                condition: JumpCondition::Zero,
+            },
+            Opcode::JNZ => Operation::Jump {
+                target: JumpTarget::AbsoluteAdressRegister(iw.get_op_a()),
+                condition: JumpCondition::NotZero,
+            },
+            Opcode::JC => Operation::Jump {
+                target: JumpTarget::AbsoluteAdressRegister(iw.get_op_a()),
+                condition: JumpCondition::Carry, // Less
+            },
+            Opcode::JNC => Operation::Jump {
+                target: JumpTarget::AbsoluteAdressRegister(iw.get_op_a()),
+                condition: JumpCondition::NotCarry, // NotLess
+            },
+
+            // Relative jumps
+            Opcode::JRCON => Operation::Jump {
+                target: JumpTarget::AddressOffsetConstant(iw.get_constant12()),
+                condition: JumpCondition::Always,
+            },
+            Opcode::JZR => Operation::Jump {
+                target: JumpTarget::AddressOffsetConstant(iw.get_constant12()),
+                condition: JumpCondition::Zero,
+            },
+            Opcode::JNZR => Operation::Jump {
+                target: JumpTarget::AddressOffsetConstant(iw.get_constant12()),
+                condition: JumpCondition::NotZero,
+            },
+            Opcode::JCR => Operation::Jump {
+                target: JumpTarget::AddressOffsetConstant(iw.get_constant12()),
+                condition: JumpCondition::Carry,
+            },
+            Opcode::JNCR => Operation::Jump {
+                target: JumpTarget::AddressOffsetConstant(iw.get_constant12()),
+                condition: JumpCondition::NotCarry,
+            },
+
+            Opcode::ST => Operation::Store {
+                address_register: iw.get_op_a(),
+                data_register: iw.get_op_b(),
+            },
+            // TODO: The way the target / operand bits are read here makes me really uneasy.
+            // Better check this out again later
+            Opcode::LD => Operation::Load {
+                address: iw.get_target(),
+                source: LoadSource::RAM {
+                    address_register: iw.get_op_b(),
+                },
+            },
+
+            Opcode::NOP => Operation::Noop,
+            // The DGB opcode really does not matter to our emu at the moment
+            Opcode::DBG => Operation::Noop,
+            Opcode::HLT => Operation::Halt,
+
+            Opcode::LDC => Operation::Load {
+                address: iw.get_load_address(),
+                source: LoadSource::Constant(iw.get_constant16()),
+            },
+        };
     }
 }
 

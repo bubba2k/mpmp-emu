@@ -25,13 +25,13 @@ pub enum JumpCondition {
     Always,
     Zero,
     NotZero,
-    Less,
+    Carry,    // Or "less",
+    NotCarry, // Or "Not less"
 }
 
 pub enum JumpTarget {
-    AbsoluteConstant(u32),
-    OffsetConstant(u32),
-    OffsetRegister(Register),
+    AddressOffsetConstant(u32),
+    AbsoluteAdressRegister(Register),
 }
 
 pub enum LoadSource {
@@ -47,6 +47,7 @@ pub enum Operation {
     Dec(UnaryOp),
     Neg(UnaryOp),
     Not(UnaryOp),
+    Move(UnaryOp),
 
     And(BinaryOp),
     Or(BinaryOp),
@@ -60,6 +61,7 @@ pub enum Operation {
     Multiply(BinaryOp),
     ShiftLeft(BinaryOp),
     ShiftRight(BinaryOp),
+    Test(BinaryOp),
 
     Add3(TernaryOp),
 
