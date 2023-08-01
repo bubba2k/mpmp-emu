@@ -78,7 +78,7 @@ pub enum Operation {
     },
 
     Load {
-        address: Register,
+        target_register: Register,
         source: LoadSource,
     },
 

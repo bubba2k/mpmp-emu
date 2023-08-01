@@ -246,13 +246,14 @@ impl From<InstructionWord> for ir::Operation {
             },
 
             Opcode::ST => Operation::Store {
-                address_register: iw.get_op_a(),
-                data_register: iw.get_op_b(),
+                address_register: iw.get_op_b(), // Yes, the operands just are this way.
+                data_register: iw.get_op_a(),
             },
             // TODO: The way the target / operand bits are read here makes me really uneasy.
             // Better check this out again later
+            // Most likely this is just how the operands are encoded here for some reason.
             Opcode::LD => Operation::Load {
-                address: iw.get_target(),
+                target_register: iw.get_target(),
                 source: LoadSource::RAM {
                     address_register: iw.get_op_b(),
                 },
@@ -264,7 +265,7 @@ impl From<InstructionWord> for ir::Operation {
             Opcode::HLT => Operation::Halt,
 
             Opcode::LDC => Operation::Load {
-                address: iw.get_load_address(),
+                target_register: iw.get_load_address(),
                 source: LoadSource::Constant(iw.get_constant16()),
             },
         };
@@ -328,16 +329,44 @@ mod tests {
         assert_eq!(word1.get_load_address(), 2);
         assert_eq!(word1.get_constant16(), 0x8001);
 
+        let op1 = Operation::from(word1);
+        assert_eq!(
+            op1,
+            Operation::Load {
+                target_register: 0x2,
+                source: LoadSource::Constant(0x8001),
+            }
+        );
+
         let word2 = InstructionWord::from(INSTR2);
         assert_eq!(word2.get_opcode(), Opcode::INC);
         assert_eq!(word2.get_target(), 0x0);
         assert_eq!(word2.get_op_a(), 0x0);
+
+        let op2 = Operation::from(word2);
+        assert_eq!(
+            op2,
+            Operation::Inc(UnaryOp {
+                target: 0x0,
+                source_a: 0x0
+            }),
+        );
 
         let word3 = InstructionWord::from(INSTR3);
         assert_eq!(word3.get_opcode(), Opcode::ADD);
         assert_eq!(word3.get_target(), 0x0);
         assert_eq!(word3.get_op_a(), 0x1);
         assert_eq!(word3.get_op_b(), 0x2);
+
+        let op3 = Operation::from(word3);
+        assert_eq!(
+            op3,
+            Operation::Add(BinaryOp {
+                target: 0x0,
+                source_a: 0x1,
+                source_b: 0x2
+            })
+        );
 
         let word4 = InstructionWord::from(INSTR4);
         assert_eq!(word4.get_opcode(), Opcode::ADD3);
@@ -346,11 +375,32 @@ mod tests {
         assert_eq!(word4.get_op_b(), 0x5);
         assert_eq!(word4.get_op_c(), 0x2);
 
+        let op4 = Operation::from(word4);
+        assert_eq!(
+            op4,
+            Operation::Add3(TernaryOp {
+                target: 0x3,
+                source_a: 0x4,
+                source_b: 0x5,
+                source_c: 0x2
+            })
+        );
+
         let word5 = InstructionWord::from(INSTR5);
         assert_eq!(word5.get_opcode(), Opcode::SUB);
         assert_eq!(word5.get_target(), 0x0);
         assert_eq!(word5.get_op_a(), 0x4);
         assert_eq!(word5.get_op_b(), 0x5);
+
+        let op5 = Operation::from(word5);
+        assert_eq!(
+            op5,
+            Operation::Sub(BinaryOp {
+                target: 0x0,
+                source_a: 0x4,
+                source_b: 0x5
+            })
+        );
 
         let word6 = InstructionWord::from(INSTR6);
         assert_eq!(word6.get_opcode(), Opcode::SUBC);
@@ -358,10 +408,29 @@ mod tests {
         assert_eq!(word6.get_op_a(), 0x1);
         assert_eq!(word6.get_op_b(), 0x4);
 
+        let op6 = Operation::from(word6);
+        assert_eq!(
+            op6,
+            Operation::SubCarry(BinaryOp {
+                target: 0x2,
+                source_a: 0x1,
+                source_b: 0x4
+            })
+        );
+
         let word7 = InstructionWord::from(INSTR7);
         assert_eq!(word7.get_opcode(), Opcode::LDC);
         assert_eq!(word7.get_load_address(), 0x5);
         assert_eq!(word7.get_constant16(), 0x7832);
+
+        let op7 = Operation::from(word7);
+        assert_eq!(
+            op7,
+            Operation::Load {
+                target_register: 0x5,
+                source: LoadSource::Constant(0x7832),
+            }
+        );
 
         let word8 = InstructionWord::from(INSTR8);
         assert_eq!(word8.get_opcode(), Opcode::OR);
@@ -369,22 +438,62 @@ mod tests {
         assert_eq!(word8.get_op_a(), 0x1);
         assert_eq!(word8.get_op_b(), 0x4);
 
+        let op8 = Operation::from(word8);
+        assert_eq!(
+            op8,
+            Operation::Or(BinaryOp {
+                target: 0x0,
+                source_a: 0x1,
+                source_b: 0x4
+            })
+        );
+
         let word9 = InstructionWord::from(INSTR9);
         assert_eq!(word9.get_opcode(), Opcode::NOP);
+
+        let op9 = Operation::from(word9);
+        assert_eq!(op9, Operation::Noop);
 
         let word10 = InstructionWord::from(INSTR10);
         assert_eq!(word10.get_opcode(), Opcode::JZ);
         assert_eq!(word10.get_op_a(), 0x2);
 
+        let op10 = Operation::from(word10);
+        assert_eq!(
+            op10,
+            Operation::Jump {
+                target: JumpTarget::AbsoluteAdressRegister(0x2),
+                condition: JumpCondition::Zero,
+            }
+        );
+
         let word11 = InstructionWord::from(INSTR11);
         assert_eq!(word11.get_opcode(), Opcode::JMP);
         assert_eq!(word11.get_op_a(), 0x3);
+
+        let op11 = Operation::from(word11);
+        assert_eq!(
+            op11,
+            Operation::Jump {
+                target: JumpTarget::AbsoluteAdressRegister(0x3),
+                condition: JumpCondition::Always
+            }
+        );
 
         let word12 = InstructionWord::from(INSTR12);
         assert_eq!(word12.get_opcode(), Opcode::JCR);
         assert_eq!(word12.get_constant12(), 4);
         // The argument is 5, but actually we only jump
         // 4 steps due to program counter incrementing anyway
+
+        let op12 = Operation::from(word12);
+        assert_eq!(
+            op12,
+            Operation::Jump {
+                target: JumpTarget::AddressOffsetConstant(0x4),
+                condition: JumpCondition::Carry
+            }
+        );
 
         // The encodings of LD and ST operands are super confusing
         // but I think what I did here should be correct
@@ -393,12 +502,35 @@ mod tests {
         assert_eq!(word13.get_op_a(), 0x1); // Data register
         assert_eq!(word13.get_op_b(), 0x3); // Address register
 
+        let op13 = Operation::from(word13);
+        assert_eq!(
+            op13,
+            Operation::Store {
+                address_register: 0x3,
+                data_register: 0x1
+            }
+        );
+
         let word14 = InstructionWord::from(INSTR14);
         assert_eq!(word14.get_opcode(), Opcode::LD);
         assert_eq!(word14.get_target(), 0x2); // Target register
-        assert_eq!(word14.get_op_b(), 0x5); // Address register
+        assert_eq!(word14.get_op_b(), 0x5); // Source address register
+
+        let op14 = Operation::from(word14);
+        assert_eq!(
+            op14,
+            Operation::Load {
+                target_register: 0x2,
+                source: LoadSource::RAM {
+                    address_register: 0x5
+                }
+            }
+        );
 
         let wordh = InstructionWord::from(INSTRH);
         assert_eq!(wordh.get_opcode(), Opcode::HLT);
+
+        let oph = Operation::from(wordh);
+        assert_eq!(oph, Operation::Halt);
     }
 }
