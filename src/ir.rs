@@ -1,19 +1,22 @@
 // Intermediate representation to be interpreted directly
 
 // A register address
-type Register = u32;
+pub type Register = u32;
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct UnaryOp {
     pub target: Register,
     pub source_a: Register,
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct BinaryOp {
     pub target: Register,
     pub source_a: Register,
     pub source_b: Register,
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub struct TernaryOp {
     pub target: Register,
     pub source_a: Register,
@@ -21,6 +24,7 @@ pub struct TernaryOp {
     pub source_c: Register,
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum JumpCondition {
     Always,
     Zero,
@@ -29,16 +33,19 @@ pub enum JumpCondition {
     NotCarry, // Or "Not less"
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum JumpTarget {
     AddressOffsetConstant(u32),
     AbsoluteAdressRegister(Register),
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum LoadSource {
     Constant(u32),
     RAM { address_register: Register },
 }
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum Operation {
     Halt,
     Noop,
