@@ -317,6 +317,8 @@ mod tests {
     const INSTR10: u32 = 0x00251; // jz %reg2
     const INSTR11: u32 = 0x00350; // jmp %reg3
     const INSTR12: u32 = 0x0045b; // jcr 5
+    const INSTR13: u32 = 0x01968; // st %reg3 %reg1
+    const INSTR14: u32 = 0x42869; // ld %reg2 %reg5
     const INSTRH: u32 = 0x0007f; // halt
 
     #[test]
@@ -381,8 +383,20 @@ mod tests {
         let word12 = InstructionWord::from(INSTR12);
         assert_eq!(word12.get_opcode(), Opcode::JCR);
         assert_eq!(word12.get_constant12(), 4);
-        // The argument is 5, but actually we enoly jumo
+        // The argument is 5, but actually we only jump
         // 4 steps due to program counter incrementing anyway
+
+        // The encodings of LD and ST operands are super confusing
+        // but I think what I did here should be correct
+        let word13 = InstructionWord::from(INSTR13);
+        assert_eq!(word13.get_opcode(), Opcode::ST);
+        assert_eq!(word13.get_op_a(), 0x1); // Data register
+        assert_eq!(word13.get_op_b(), 0x3); // Address register
+
+        let word14 = InstructionWord::from(INSTR14);
+        assert_eq!(word14.get_opcode(), Opcode::LD);
+        assert_eq!(word14.get_target(), 0x2); // Target register
+        assert_eq!(word14.get_op_b(), 0x5); // Address register
 
         let wordh = InstructionWord::from(INSTRH);
         assert_eq!(wordh.get_opcode(), Opcode::HLT);

@@ -11,3 +11,5 @@ main:
   jz %reg2
   jmp %reg3
   jcr 0
+  st %reg3 %reg1
+  ld %reg2 %reg5
