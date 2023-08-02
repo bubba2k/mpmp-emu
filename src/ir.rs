@@ -1,7 +1,7 @@
 // Intermediate representation to be interpreted directly
 
 // A register address
-pub type Register = u32;
+pub type Register = usize;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct UnaryOp {
@@ -35,13 +35,13 @@ pub enum JumpCondition {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum JumpTarget {
-    AddressOffsetConstant(u32),
+    AddressOffsetConstant(u16),
     AbsoluteAdressRegister(Register),
 }
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum LoadSource {
-    Constant(u32),
+    Constant(u16),
     RAM { address_register: Register },
 }
 

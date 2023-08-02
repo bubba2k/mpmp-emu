@@ -99,7 +99,7 @@ impl InstructionWord {
         let value = self.get_bits(0, 7).unwrap().clamp(0, 0x80);
 
         // Attempt to parse an enum value from the u32
-        return match num::FromPrimitive::from_u32(value) {
+        return match num::FromPrimitive::from_u32(value as u32) {
             Some(val) => val,
             None => {
                 // Print a warning indicating unknown opcode and return NOP
@@ -110,62 +110,62 @@ impl InstructionWord {
         };
     }
 
-    fn get_op_a(&self) -> u32 {
-        self.get_bits(8, 10).unwrap()
+    fn get_op_a(&self) -> u8 {
+        self.get_bits(8, 10).unwrap() as u8
     }
 
-    fn get_op_b(&self) -> u32 {
-        self.get_bits(11, 13).unwrap()
+    fn get_op_b(&self) -> u8 {
+        self.get_bits(11, 13).unwrap() as u8
     }
 
-    fn get_op_c(&self) -> u32 {
-        self.get_bits(14, 16).unwrap()
+    fn get_op_c(&self) -> u8 {
+        self.get_bits(14, 16).unwrap() as u8
     }
 
-    fn get_target(&self) -> u32 {
-        self.get_bits(17, 19).unwrap()
+    fn get_target(&self) -> u8 {
+        self.get_bits(17, 19).unwrap() as u8
     }
 
-    fn get_constant12(&self) -> u32 {
-        self.get_bits(8, 19).unwrap()
+    fn get_constant12(&self) -> u16 {
+        self.get_bits(8, 19).unwrap() as u16
     }
 
-    fn get_constant16(&self) -> u32 {
-        let lower_4: u32 = self.get_bits(0, 3).unwrap();
-        let upper_12: u32 = self.get_bits(8, 19).unwrap();
+    fn get_constant16(&self) -> u16 {
+        let lower_4: u16 = self.get_bits(0, 3).unwrap() as u16;
+        let upper_12: u16 = self.get_bits(8, 19).unwrap() as u16;
 
         lower_4 | (upper_12 << 4)
     }
 
-    fn get_load(&self) -> u32 {
-        self.get_bits(7, 7).unwrap()
+    fn get_load(&self) -> bool {
+        self.get_bits(7, 7).unwrap() == 1
     }
 
-    fn get_load_address(&self) -> u32 {
-        self.get_bits(4, 6).unwrap()
+    fn get_load_address(&self) -> u8 {
+        self.get_bits(4, 6).unwrap() as u8
     }
 
     fn get_unary_op(&self) -> UnaryOp {
         UnaryOp {
-            target: self.get_target(),
-            source_a: self.get_op_a(),
+            target: self.get_target() as usize,
+            source_a: self.get_op_a() as usize,
         }
     }
 
     fn get_binary_op(&self) -> BinaryOp {
         BinaryOp {
-            target: self.get_target(),
-            source_a: self.get_op_a(),
-            source_b: self.get_op_b(),
+            target: self.get_target() as usize,
+            source_a: self.get_op_a() as usize,
+            source_b: self.get_op_b() as usize,
         }
     }
 
     fn get_ternary_op(&self) -> TernaryOp {
         TernaryOp {
-            target: self.get_target(),
-            source_a: self.get_op_a(),
-            source_b: self.get_op_b(),
-            source_c: self.get_op_c(),
+            target: self.get_target() as usize,
+            source_a: self.get_op_a() as usize,
+            source_b: self.get_op_b() as usize,
+            source_c: self.get_op_c() as usize,
         }
     }
 }
@@ -203,23 +203,23 @@ impl From<InstructionWord> for ir::Operation {
 
             // Absolute jumps
             Opcode::JMP => Operation::Jump {
-                target: JumpTarget::AbsoluteAdressRegister(iw.get_op_a()),
+                target: JumpTarget::AbsoluteAdressRegister(iw.get_op_a() as usize),
                 condition: JumpCondition::Always,
             },
             Opcode::JZ => Operation::Jump {
-                target: JumpTarget::AbsoluteAdressRegister(iw.get_op_a()),
+                target: JumpTarget::AbsoluteAdressRegister(iw.get_op_a() as usize),
                 condition: JumpCondition::Zero,
             },
             Opcode::JNZ => Operation::Jump {
-                target: JumpTarget::AbsoluteAdressRegister(iw.get_op_a()),
+                target: JumpTarget::AbsoluteAdressRegister(iw.get_op_a() as usize),
                 condition: JumpCondition::NotZero,
             },
             Opcode::JC => Operation::Jump {
-                target: JumpTarget::AbsoluteAdressRegister(iw.get_op_a()),
+                target: JumpTarget::AbsoluteAdressRegister(iw.get_op_a() as usize),
                 condition: JumpCondition::Carry, // Less
             },
             Opcode::JNC => Operation::Jump {
-                target: JumpTarget::AbsoluteAdressRegister(iw.get_op_a()),
+                target: JumpTarget::AbsoluteAdressRegister(iw.get_op_a() as usize),
                 condition: JumpCondition::NotCarry, // NotLess
             },
 
@@ -246,16 +246,16 @@ impl From<InstructionWord> for ir::Operation {
             },
 
             Opcode::ST => Operation::Store {
-                address_register: iw.get_op_b(), // Yes, the operands just are this way.
-                data_register: iw.get_op_a(),
+                address_register: iw.get_op_b() as usize, // Yes, the operands just are this way.
+                data_register: iw.get_op_a() as usize,
             },
             // TODO: The way the target / operand bits are read here makes me really uneasy.
             // Better check this out again later
             // Most likely this is just how the operands are encoded here for some reason.
             Opcode::LD => Operation::Load {
-                target_register: iw.get_target(),
+                target_register: iw.get_target() as usize,
                 source: LoadSource::RAM {
-                    address_register: iw.get_op_b(),
+                    address_register: iw.get_op_b() as usize,
                 },
             },
 
@@ -265,7 +265,7 @@ impl From<InstructionWord> for ir::Operation {
             Opcode::HLT => Operation::Halt,
 
             Opcode::LDC => Operation::Load {
-                target_register: iw.get_load_address(),
+                target_register: iw.get_load_address() as usize,
                 source: LoadSource::Constant(iw.get_constant16()),
             },
         };

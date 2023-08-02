@@ -1,6 +1,7 @@
 mod decoder;
 mod hex_parser;
 mod ir;
+mod runtime;
 
 extern crate num;
 #[macro_use]
