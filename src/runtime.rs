@@ -18,6 +18,33 @@ const PMEM_SIZE: usize = 65_536; // 2^16
 type Pmem = [u32; PMEM_SIZE];
 
 #[derive(Debug, PartialEq, Eq)]
+pub struct IOStream {
+    pub string: String,
+}
+
+impl IOStream {
+    pub fn clear(&mut self) {
+        self.string.clear();
+    }
+
+    pub fn append_char(&mut self, ch: char) {
+        self.string += &ch.to_string();
+    }
+
+    pub fn consume_first(&mut self) -> char {
+        let res = self.string.chars().next();
+
+        match res {
+            Some(ch) => {
+                self.string.remove(0);
+                ch
+            }
+            None => char::from_u32(0).unwrap(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
 pub struct CpuState {
     pub registers: Registers,
     pub flags: Flags,
@@ -25,6 +52,9 @@ pub struct CpuState {
     pub pmem: Pmem,
     pub pcounter: u16,
     pub running: bool,
+
+    pub istream: IOStream,
+    pub ostream: IOStream,
 }
 
 impl Default for CpuState {
@@ -40,6 +70,13 @@ impl Default for CpuState {
             pmem: [0u32; PMEM_SIZE],
             running: false,
             pcounter: 0,
+
+            istream: IOStream {
+                string: String::new(),
+            },
+            ostream: IOStream {
+                string: String::new(),
+            },
         }
     }
 }
