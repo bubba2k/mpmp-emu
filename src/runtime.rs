@@ -1,6 +1,5 @@
-use std::mem::transmute;
-
 use super::ir::*;
+use super::program::Program;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct Flags {
@@ -9,10 +8,10 @@ pub struct Flags {
     pub zero: bool,
 }
 
-type Registers = [i16; 6]; // the 6 registers
+type Registers = [u16; 6]; // the 6 registers
 
 const RAM_SIZE: usize = 32_768; // 2^15
-type Ram = [i16; RAM_SIZE];
+type Ram = [u16; RAM_SIZE];
 
 const PMEM_SIZE: usize = 65_536; // 2^16
 type Pmem = [u32; PMEM_SIZE];
@@ -60,13 +59,13 @@ pub struct CpuState {
 impl Default for CpuState {
     fn default() -> Self {
         CpuState {
-            registers: [0i16; 6],
+            registers: [0u16; 6],
             flags: Flags {
                 carry: false,
                 overflow: false,
                 zero: false,
             },
-            ram: [0i16; RAM_SIZE],
+            ram: [0u16; RAM_SIZE],
             pmem: [0u32; PMEM_SIZE],
             running: false,
             pcounter: 0,
@@ -84,8 +83,12 @@ impl Default for CpuState {
 // TODO: Test this!
 impl CpuState {
     // Inspect the supplied value and update zero flag accordingly
-    fn update_zero_flag(&mut self, res: i16) {
+    fn update_zero_flag(&mut self, res: u16) {
         self.flags.zero = res == 0;
+    }
+
+    pub fn execute_next_prog_op(&mut self, prog: &Program) {
+        self.execute_operation(&prog.operations[self.pcounter as usize])
     }
 
     pub fn execute_operation(&mut self, op: &Operation) {
@@ -94,15 +97,15 @@ impl CpuState {
             Operation::Noop => {}
             Operation::Inc(op) => {
                 let res = self.registers[op.source_a].overflowing_add(1);
-                self.registers[op.target] = res.0;
+                self.registers[op.source_a] = res.0;
                 self.flags.carry = res.1;
-                self.update_zero_flag(self.registers[op.target]);
+                self.update_zero_flag(self.registers[op.source_a]);
             }
             Operation::Dec(op) => {
                 let res = self.registers[op.source_a].overflowing_sub(1);
-                self.registers[op.target] = res.0;
+                self.registers[op.source_a] = res.0;
                 self.flags.carry = res.1;
-                self.update_zero_flag(self.registers[op.target]);
+                self.update_zero_flag(self.registers[op.source_a]);
             }
             Operation::Not(op) => {
                 self.registers[op.target] = !self.registers[op.source_a];
@@ -136,11 +139,11 @@ impl CpuState {
             }
             Operation::ShiftRight(op) => {
                 self.registers[op.target] =
-                    self.registers[op.source_a] << self.registers[op.source_b];
+                    self.registers[op.source_a] >> self.registers[op.source_b];
                 self.update_zero_flag(self.registers[op.target]);
             }
             Operation::Neg(op) => {
-                self.registers[op.target] = -(self.registers[op.source_a]);
+                self.registers[op.target] = !(self.registers[op.source_a]) + 0x1;
                 self.update_zero_flag(self.registers[op.target]);
             }
             Operation::Add(op) => {
@@ -221,7 +224,7 @@ impl CpuState {
                 source: LoadSource::Constant(data),
             } => {
                 // We don't want to fool around with the bits, just copy them
-                self.registers[*target_register] = unsafe { std::mem::transmute(*data) };
+                self.registers[*target_register] = *data;
             }
 
             Operation::Store {
@@ -290,5 +293,167 @@ impl CpuState {
                 }
             },
         }
+
+        self.pcounter += 1;
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::super::program::Program;
+    use super::CpuState;
+
+    /*
+    ldc %reg0 0x5
+    ldc %reg1 0x1
+    ldc %reg2 0x80
+    add %reg3 %reg1 %reg1
+    sub %reg3 %reg0 %reg1
+    inc %reg3
+    mov %reg3 %reg0
+    tst %reg1 %reg2
+    add3 %reg3 %reg0 %reg1 %reg2
+    shl %reg3 %reg3 %reg1
+    shr %reg3 %reg3 %reg1
+    dec %reg3
+    and %reg4 %reg3 %reg0
+    or  %reg4 %reg3 %reg2
+    not %reg1 %reg1
+    ldc %reg5 0xffff
+    inc %reg5
+    dec %reg5
+    add %reg5 %reg5 %reg1
+    sub %reg5 %reg5 %reg1
+    */
+    const PMEM1: [u32; 21] = [
+        0x00085u32, 0x00091u32, 0x008a0u32, 0x60900u32, 0x60803u32, 0x00305u32, 0x60048u32,
+        0x01108u32, 0x68801u32, 0x60b0fu32, 0x60b10u32, 0x00306u32, 0x80309u32, 0x8130au32,
+        0x2010bu32, 0xfffdfu32, 0x00505u32, 0x00506u32, 0xa0d00u32, 0xa0d03u32, 0x0007fu32,
+    ];
+
+    #[test]
+    fn alu_tests() {
+        let mut cpu = CpuState::default();
+
+        let program1: Program = Program::from(PMEM1.as_slice());
+
+        // ldc %reg0 0x5
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[0], 0x5);
+        assert_eq!(cpu.pcounter, 1);
+        assert_eq!(cpu.flags.zero, false);
+        assert_eq!(cpu.flags.carry, false);
+
+        // ldc %reg1 0x1
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[1], 0x1);
+
+        // ldc %reg2 0x80
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[2], 0x80);
+
+        // add %reg3 %reg1 %reg1
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[3], 0x2);
+        assert_eq!(cpu.flags.carry, false);
+        assert_eq!(cpu.flags.zero, false);
+        assert_eq!(cpu.registers[0], 0x5);
+        assert_eq!(cpu.registers[1], 0x1);
+        assert_eq!(cpu.registers[4], 0x0);
+
+        // sub %reg3 %reg0 %reg1
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[3], 0x4);
+        assert_eq!(cpu.flags.carry, false);
+        assert_eq!(cpu.flags.zero, false);
+
+        // inc %reg3
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[3], 0x5);
+        assert_eq!(cpu.flags.carry, false);
+        assert_eq!(cpu.flags.zero, false);
+
+        // mov %reg3 %reg0
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[3], 0x5);
+        assert_eq!(cpu.flags.carry, false);
+        assert_eq!(cpu.flags.zero, false);
+
+        // tst %reg1 %reg2
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.flags.carry, true);
+        assert_eq!(cpu.flags.zero, false);
+
+        // add3 %reg3 %reg0 %reg1 %reg2
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[3], 0x86);
+        assert_eq!(cpu.flags.carry, false);
+        assert_eq!(cpu.flags.zero, false);
+
+        // shl %reg3 %reg3 %reg1
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[3], 0x10C);
+        assert_eq!(cpu.flags.carry, false);
+        assert_eq!(cpu.flags.zero, false);
+
+        // shr %reg3 %reg3 %reg1
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[3], 0x86);
+        assert_eq!(cpu.flags.carry, false);
+        assert_eq!(cpu.flags.zero, false);
+
+        // dec %reg3
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[3], 0x85);
+        assert_eq!(cpu.flags.carry, false);
+        assert_eq!(cpu.flags.zero, false);
+
+        // and %reg4 $reg3 %reg0
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[4], 0x85 & 0x5);
+        assert_eq!(cpu.flags.carry, false);
+        assert_eq!(cpu.flags.zero, false);
+
+        // or %reg4 %reg3 %reg2
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[4], 0x85 | 0x5);
+        assert_eq!(cpu.flags.carry, false);
+        assert_eq!(cpu.flags.zero, false);
+
+        // not %reg1 %reg1
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[1], !0x1);
+        assert_eq!(cpu.flags.carry, false);
+        assert_eq!(cpu.flags.zero, false);
+
+        // ldc %reg5 0xffff
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[5], 0xffff);
+        assert_eq!(cpu.flags.carry, false);
+        assert_eq!(cpu.flags.zero, false);
+
+        // inc %reg5
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[5], 0x0);
+        assert_eq!(cpu.flags.carry, true);
+        assert_eq!(cpu.flags.zero, true);
+
+        // dec %reg5
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[5], 0xffff);
+        assert_eq!(cpu.flags.carry, true);
+        assert_eq!(cpu.flags.zero, false);
+
+        // add %reg5 %reg5 %reg1
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[5], 0xfffd);
+        assert_eq!(cpu.flags.carry, true);
+        assert_eq!(cpu.flags.zero, false);
+
+        // sub %reg5 %reg5 %reg1
+        cpu.execute_next_prog_op(&program1);
+        assert_eq!(cpu.registers[5], 0xffff);
+        assert_eq!(cpu.flags.carry, true);
+        assert_eq!(cpu.flags.zero, false);
     }
 }

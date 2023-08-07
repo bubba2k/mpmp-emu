@@ -272,6 +272,18 @@ impl From<InstructionWord> for ir::Operation {
     }
 }
 
+impl From<u32> for Operation {
+    fn from(value: u32) -> Self {
+        Operation::from(InstructionWord::from(value))
+    }
+}
+
+impl From<[u8; 3]> for Operation {
+    fn from(value: [u8; 3]) -> Self {
+        Operation::from(InstructionWord::from(value))
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
