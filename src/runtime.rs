@@ -50,7 +50,7 @@ pub struct CpuState {
     pub ram: Ram,
     pub pmem: Pmem,
     pub pcounter: u16,
-    pub running: bool,
+    pub received_halt: bool,
 
     pub istream: IOStream,
     pub ostream: IOStream,
@@ -67,7 +67,7 @@ impl Default for CpuState {
             },
             ram: [0u16; RAM_SIZE],
             pmem: [0u32; PMEM_SIZE],
-            running: false,
+            received_halt: false,
             pcounter: 0,
 
             istream: IOStream {
@@ -93,7 +93,7 @@ impl CpuState {
 
     pub fn execute_operation(&mut self, op: &Operation) {
         match op {
-            Operation::Halt => self.running = false,
+            Operation::Halt => self.received_halt = true,
             Operation::Noop => {}
             Operation::Inc(op) => {
                 let res = self.registers[op.source_a].overflowing_add(1);
@@ -242,25 +242,25 @@ impl CpuState {
             } => match condition {
                 JumpCondition::Zero => {
                     if self.flags.zero {
-                        self.pcounter += *offset
+                        self.pcounter = self.pcounter.wrapping_add_signed(*offset)
                     }
                 }
                 JumpCondition::NotZero => {
                     if !self.flags.zero {
-                        self.pcounter += offset
+                        self.pcounter = self.pcounter.wrapping_add_signed(*offset)
                     }
                 }
                 JumpCondition::Carry => {
                     if self.flags.carry {
-                        self.pcounter += offset
+                        self.pcounter = self.pcounter.wrapping_add_signed(*offset)
                     }
                 }
                 JumpCondition::NotCarry => {
                     if !self.flags.carry {
-                        self.pcounter += offset
+                        self.pcounter = self.pcounter.wrapping_add_signed(*offset)
                     }
                 }
-                JumpCondition::Always => self.pcounter += offset,
+                JumpCondition::Always => self.pcounter = self.pcounter.wrapping_add_signed(*offset),
             },
 
             // Absolute jumps
@@ -455,5 +455,44 @@ mod tests {
         assert_eq!(cpu.registers[5], 0xffff);
         assert_eq!(cpu.flags.carry, true);
         assert_eq!(cpu.flags.zero, false);
+    }
+
+    /*
+    # Compute the fibonacci numbers
+    # Result is stored in %reg5
+    main: # Setup
+      ldc %reg0 1
+      ldc %reg1 1
+      ldc %reg2 3
+    loop:
+      add %reg0 %reg0 %reg1
+      mov %reg5 %reg0
+      dec %reg2
+      jzr end
+      add %reg1 %reg0 %reg1
+      mov %reg5 %reg1
+      dec %reg2
+      jnzr loop
+    end:
+      hlt
+    */
+    const PMEM2: [u32; 12] = [
+        0x00081u32, 0x00091u32, 0x000a3u32, 0x00800u32, 0xa0048u32, 0x00206u32, 0x00459u32,
+        0x20800u32, 0xa0148u32, 0x00206u32, 0xff85au32, 0x0007fu32,
+    ];
+
+    #[test]
+    fn misc_program_tests() {
+        let mut cpu = CpuState::default();
+        let program2 = Program::from(PMEM2.as_slice());
+
+        while (!cpu.received_halt) {
+            cpu.execute_next_prog_op(&program2)
+        }
+
+        assert_eq!(cpu.registers[5], 0x5);
+        assert_eq!(cpu.registers[2], 0x0);
+        assert_eq!(cpu.registers[0], 0x5);
+        assert_eq!(cpu.registers[1], 0x3);
     }
 }

@@ -126,8 +126,10 @@ impl InstructionWord {
         self.get_bits(17, 19).unwrap() as u8
     }
 
-    fn get_constant12(&self) -> u16 {
-        self.get_bits(8, 19).unwrap() as u16
+    fn get_constant12(&self) -> i16 {
+        let buffer = self.get_bits(8, 19).unwrap() as u16;
+        // Need to get the raw bits
+        unsafe { std::mem::transmute(buffer) }
     }
 
     fn get_constant16(&self) -> u16 {

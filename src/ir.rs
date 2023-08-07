@@ -35,7 +35,7 @@ pub enum JumpCondition {
 
 #[derive(Debug, PartialEq, Eq)]
 pub enum JumpTarget {
-    AddressOffsetConstant(u16),
+    AddressOffsetConstant(i16),
     AbsoluteAdressRegister(Register),
 }
 
