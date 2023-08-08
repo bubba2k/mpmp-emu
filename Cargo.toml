@@ -14,3 +14,4 @@ masm = { git = "https://gitlab.com/moseschmiedel/masm", tag = "v1.3.0" }
 num = "0.4"
 num-derive = "0.3"
 num-traits = "0.2"
+rand = "0.8"

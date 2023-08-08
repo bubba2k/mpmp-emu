@@ -54,6 +54,8 @@ pub struct CpuState {
 
     pub istream: IOStream,
     pub ostream: IOStream,
+
+    pub rng_state: u16,
 }
 
 impl Default for CpuState {
@@ -76,6 +78,8 @@ impl Default for CpuState {
             ostream: IOStream {
                 string: String::new(),
             },
+
+            rng_state: rand::random(),
         }
     }
 }
@@ -227,7 +231,7 @@ impl CpuState {
                         self.registers[*target_register] = 0x0u16;
                     }
                     // Read RNG state
-                    0x8007 => {}
+                    0x8007 => self.registers[*target_register] = self.rng_state,
                     // Else perform default load from RAM
                     _ => {
                         self.registers[*target_register] = self.ram[address as usize];
@@ -265,9 +269,11 @@ impl CpuState {
                         self.istream.clear();
                     }
                     // Reset RNG
-                    0x8005 => {}
+                    0x8005 => self.rng_state = rand::random(),
                     // Enter next RNG state
-                    0x8006 => {}
+                    0x8006 => {
+                            self.rng_state = rand::random(),
+                        }
                     // Else perform default store to ram
                     _ => {
                         self.ram[address as usize] = self.registers[*data_register];
