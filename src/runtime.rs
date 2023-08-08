@@ -481,8 +481,36 @@ mod tests {
         0x20800u32, 0xa0148u32, 0x00206u32, 0xff85au32, 0x0007fu32,
     ];
 
+    /*
+    # Compute the 15th fib number...
+    # Result is stored in %reg5
+    # Should be 233
+
+    main: # Setup
+      ldc %reg0 1
+      ldc %reg1 1
+      ldc %reg2 11
+    loop:
+      add %reg0 %reg0 %reg1
+      mov %reg5 %reg0
+      dec %reg2
+      jzr end
+      add %reg1 %reg0 %reg1
+      mov %reg5 %reg1
+      dec %reg2
+      jnzr loop
+    end:
+      hlt
+
+    */
+    const PMEM3: [u32; 12] = [
+        0x00081u32, 0x00091u32, 0x000abu32, 0x00800u32, 0xa0048u32, 0x00206u32, 0x00459u32,
+        0x20800u32, 0xa0148u32, 0x00206u32, 0xff85au32, 0x0007fu32,
+    ];
+
     #[test]
     fn misc_program_tests() {
+        // Fibonacci
         let mut cpu = CpuState::default();
         let program2 = Program::from(PMEM2.as_slice());
 
@@ -494,5 +522,16 @@ mod tests {
         assert_eq!(cpu.registers[2], 0x0);
         assert_eq!(cpu.registers[0], 0x5);
         assert_eq!(cpu.registers[1], 0x3);
+
+        // Another fibonacci
+        cpu = CpuState::default();
+        let program3 = Program::from(PMEM3.as_slice());
+
+        while (!cpu.received_halt) {
+            cpu.execute_next_prog_op(&program3)
+        }
+
+        assert_eq!(cpu.registers[5], 233);
+        assert_eq!(cpu.registers[2], 0x0);
     }
 }
