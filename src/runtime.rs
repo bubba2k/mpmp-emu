@@ -215,7 +215,6 @@ impl CpuState {
                 self.update_zero_flag(res.0);
             }
 
-            // TODO: Implement the fancy memory mapped IO stuff here
             Operation::Load {
                 target_register,
                 source: LoadSource::RAM { address_register },
@@ -271,9 +270,7 @@ impl CpuState {
                     // Reset RNG
                     0x8005 => self.rng_state = rand::random(),
                     // Enter next RNG state
-                    0x8006 => {
-                            self.rng_state = rand::random(),
-                        }
+                    0x8006 => self.rng_state = rand::random(),
                     // Else perform default store to ram
                     _ => {
                         self.ram[address as usize] = self.registers[*data_register];
@@ -340,7 +337,9 @@ impl CpuState {
             },
         }
 
-        self.pcounter += 1;
+        // There are cases in which the pcounter overflows, (mostly when jumping to address 0)
+        // We just wrap and it should be fine
+        self.pcounter = self.pcounter.wrapping_add(1);
     }
 }
 
@@ -501,6 +500,81 @@ mod tests {
         assert_eq!(cpu.registers[5], 0xffff);
         assert_eq!(cpu.flags.carry, true);
         assert_eq!(cpu.flags.zero, false);
+    }
+
+    /*
+    setup:
+        ldc %reg2 0x8001		# Load TTY clear address
+        st	%reg2 %reg0			# Write to 0x8001 to clear TTY
+
+        ldc %reg0 65			# Load ascii code 'A'
+        ldc %reg1 91			# Load ascii code one *after* 'Z'
+        ldc %reg2 0x8000	# Load TTY write address
+    loop:
+        st  %reg2 %reg0			# Write the character
+        inc	%reg0				    # Increment character
+        tst %reg0 %reg1			# Check if we are at Z already
+        jnzr loop
+    hlt
+
+    */
+    const PMEM4: [u32; 10] = [
+        0x800a1u32, 0x01068u32, 0x00481u32, 0x0059bu32, 0x800a0u32, 0x01068u32, 0x00005u32,
+        0x00808u32, 0xffc5au32, 0x0007fu32,
+    ];
+
+    /*
+    main:
+
+    ldc %reg1 0x8002
+    ld %reg0 %reg1   # Get character from istream
+
+    ldc %reg1 0x0     # If character is null, stream is
+    tst %reg0 %reg1  # empty and we abort
+    jzr end
+
+    ldc %reg1 0x8000  # Else, print the character to
+    st %reg1 %reg0   # ostream and jump to beginning
+    jr main
+
+    end:
+    hlt
+
+    */
+    const PMEM5: [u32; 9] = [
+        0x80092u32, 0x00869u32, 0x00090u32, 0x00808u32, 0x00359u32, 0x80090u32, 0x00868u32,
+        0xff858u32, 0x0007fu32,
+    ];
+
+    #[test]
+    fn memory_mapped_io_test() {
+        let program_abc = Program::from(PMEM4.as_slice());
+        let mut cpu = CpuState::default();
+
+        while !cpu.received_halt {
+            cpu.execute_next_prog_op(&program_abc);
+        }
+
+        assert_eq!(cpu.ostream.string, "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
+
+        // TODO: Big mean bug in here!
+        let program_tty_echo = Program::from(PMEM5.as_slice());
+        let str_array = [
+            "Lorem ipsum",
+            "Der Emulator",
+            "Wow, sogar mit Unicode! (Na ja, nicht wirklich)",
+            "Ich hab Hunger!!!!!",
+        ];
+        for str in str_array {
+            cpu = CpuState::default();
+            cpu.istream.string = String::from(str);
+
+            while !cpu.received_halt {
+                cpu.execute_next_prog_op(&program_tty_echo);
+            }
+
+            assert_eq!(cpu.ostream.string, String::from(str));
+        }
     }
 
     /*
