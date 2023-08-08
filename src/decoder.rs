@@ -127,9 +127,21 @@ impl InstructionWord {
     }
 
     fn get_constant12(&self) -> i16 {
-        let buffer = self.get_bits(8, 19).unwrap() as u16;
-        // Need to get the raw bits
-        unsafe { std::mem::transmute(buffer) }
+        let buffer: u32 = self.get_bits(8, 19).unwrap();
+
+        // The following code (courtesy of chatgpt) converts the i12 contained in the u32
+        // to a value-equal i16
+        let value = buffer & 0xFFF;
+
+        // Check if the 12th bit (sign bit) is set
+        if value & 0x800 != 0 {
+            // Extend the sign bit to fill the 16-bit space
+            let extended_value = value | 0xF000;
+            return extended_value as i16;
+        } else {
+            // Positive value, no sign extension needed
+            return value as i16;
+        }
     }
 
     fn get_constant16(&self) -> u16 {
