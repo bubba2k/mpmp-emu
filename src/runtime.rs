@@ -216,8 +216,23 @@ impl CpuState {
                 target_register,
                 source: LoadSource::RAM { address_register },
             } => {
-                self.registers[*target_register] =
-                    self.ram[self.registers[*address_register] as usize];
+                let address = self.registers[*address_register];
+                match address {
+                    // Read a character from input stream
+                    0x8002 => {
+                        self.registers[*target_register] = self.istream.consume_first() as u16
+                    }
+                    // Read the state of the joystick. Not implemented
+                    0x8004 => {
+                        self.registers[*target_register] = 0x0u16;
+                    }
+                    // Read RNG state
+                    0x8007 => {}
+                    // Else perform default load from RAM
+                    _ => {
+                        self.registers[*target_register] = self.ram[address as usize];
+                    }
+                }
             }
             Operation::Load {
                 target_register,
@@ -231,8 +246,33 @@ impl CpuState {
                 address_register,
                 data_register,
             } => {
-                self.ram[self.registers[*address_register] as usize] =
-                    self.registers[*data_register];
+                let address = self.registers[*address_register];
+
+                match address {
+                    // Write char to ostream
+                    0x8000 => {
+                        let ch: char =
+                            std::char::from_u32(self.registers[*data_register as usize] as u32)
+                                .unwrap();
+                        self.ostream.append_char(ch)
+                    }
+                    // Clear ostream
+                    0x8001 => {
+                        self.ostream.clear();
+                    }
+                    // Clear istream
+                    0x8003 => {
+                        self.istream.clear();
+                    }
+                    // Reset RNG
+                    0x8005 => {}
+                    // Enter next RNG state
+                    0x8006 => {}
+                    // Else perform default store to ram
+                    _ => {
+                        self.ram[address as usize] = self.registers[*data_register];
+                    }
+                }
             }
 
             // Relative jumps
