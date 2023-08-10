@@ -84,7 +84,6 @@ impl Default for CpuState {
     }
 }
 
-// TODO: Test this!
 impl CpuState {
     // Inspect the supplied value and update zero flag accordingly
     fn update_zero_flag(&mut self, res: u16) {
@@ -184,7 +183,6 @@ impl CpuState {
                 self.flags.carry = res.1;
                 self.update_zero_flag(self.registers[op.target]);
             }
-            // TODO: This implementation might be wrong
             Operation::SubCarry(op) => {
                 let res_a =
                     self.registers[op.source_a].overflowing_sub(self.registers[op.source_b]);

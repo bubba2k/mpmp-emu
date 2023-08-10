@@ -191,7 +191,6 @@ impl Display for InstructionWord {
 }
 
 use super::ir;
-// TODO: Test this. Test it good.
 // Parse an operation from an instruction word.
 impl From<InstructionWord> for ir::Operation {
     fn from(iw: InstructionWord) -> Self {
@@ -263,9 +262,7 @@ impl From<InstructionWord> for ir::Operation {
                 address_register: iw.get_op_b() as usize, // Yes, the operands just are this way.
                 data_register: iw.get_op_a() as usize,
             },
-            // TODO: The way the target / operand bits are read here makes me really uneasy.
-            // Better check this out again later
-            // Most likely this is just how the operands are encoded here for some reason.
+            // Yes, this really is how this instruction is parsed, as unusual as it looks.
             Opcode::LD => Operation::Load {
                 target_register: iw.get_target() as usize,
                 source: LoadSource::RAM {
