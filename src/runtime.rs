@@ -557,12 +557,14 @@ mod tests {
 
         assert_eq!(cpu.ostream.string, "ABCDEFGHIJKLMNOPQRSTUVWXYZ");
 
-        // TODO: Big mean bug in here!
         let program_tty_echo = Program::from(PMEM5.as_slice());
+        // Technically, all unicode points up to u16::MAX
+        // should be supported just fine... Let's not push it in prodcution
+        // though
         let str_array = [
             "Lorem ipsum",
             "Der Emulator",
-            "Wow, sogar mit Unicode! (Na ja, nicht wirklich)",
+            "Wow, sogar mit Unicöde! (Na ja, nicht wirklich)",
             "Ich hab Hunger!!!!!",
         ];
         for str in str_array {
