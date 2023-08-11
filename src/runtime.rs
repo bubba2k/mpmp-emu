@@ -573,6 +573,7 @@ mod tests {
                 cpu.execute_next_prog_op(&program_tty_echo);
             }
 
+            assert!(cpu.ostream.string.len() > 0);
             assert_eq!(cpu.ostream.string, String::from(str));
         }
     }
@@ -628,13 +629,92 @@ mod tests {
         0x20800u32, 0xa0148u32, 0x00206u32, 0xff85au32, 0x0007fu32,
     ];
 
+    /*
+    begin:
+    jr main # Start in main procedure
+
+    puts:
+    # Print a string to the terminal
+    # args:   %reg0:  address of the first character of the string
+    #         %reg1:  number of consecutive characters to print
+    ldc %reg2 0x0
+    tst %reg1 %reg2 # If number is 0, return right away
+    jzr putsend
+    ldc %reg3 0x8000  # Keep TTY address in reg3
+    putsloop:
+    ld %reg2 %reg0  # Load char from string
+    st %reg3 %reg2  # Put char to terminal
+    inc %reg0       # Increment address
+    dec %reg1       # Decrement iterator var
+    jnzr putsloop
+    putsend:
+    hlt
+
+    main:
+    # Load the string into RAM
+    ldc %reg1 0x0   # Load address
+
+    ldc %reg0 72    # Load 'H'
+    st %reg1 %reg0  # Store char
+    inc %reg1       # Increment address
+    ldc %reg0 101   # Load 'e' and so on...
+    st %reg1 %reg0
+    inc %reg1
+    ldc %reg0 108
+    st %reg1 %reg0
+    inc %reg1
+    ldc %reg0 108
+    st %reg1 %reg0
+    inc %reg1
+    ldc %reg0 111
+    st %reg1 %reg0
+    inc %reg1
+    ldc %reg0 32
+    st %reg1 %reg0
+    inc %reg1
+    ldc %reg0 119  # 'w'
+    st %reg1 %reg0
+    inc %reg1
+    ldc %reg0 111
+    st %reg1 %reg0
+    inc %reg1
+    ldc %reg0 114
+    st %reg1 %reg0
+    inc %reg1
+    ldc %reg0 108
+    st %reg1 %reg0
+    inc %reg1
+    ldc %reg0 100
+    st %reg1 %reg0
+    inc %reg1
+    ldc %reg0 33
+    st %reg1 %reg0
+    inc %reg1
+
+    # Setup done. Call puts and go
+    ldc %reg0 0x0
+    ldc %reg1 12
+    jr puts
+
+
+    */
+    const PMEM6: [u32; 52] = [
+        0x00a58u32, 0x000a0u32, 0x01108u32, 0x00659u32, 0x800b0u32, 0x40069u32, 0x01a68u32,
+        0x00005u32, 0x00106u32, 0xffb5au32, 0x0007fu32, 0x00090u32, 0x00488u32, 0x00868u32,
+        0x00105u32, 0x00685u32, 0x00868u32, 0x00105u32, 0x0068cu32, 0x00868u32, 0x00105u32,
+        0x0068cu32, 0x00868u32, 0x00105u32, 0x0068fu32, 0x00868u32, 0x00105u32, 0x00280u32,
+        0x00868u32, 0x00105u32, 0x00787u32, 0x00868u32, 0x00105u32, 0x0068fu32, 0x00868u32,
+        0x00105u32, 0x00782u32, 0x00868u32, 0x00105u32, 0x0068cu32, 0x00868u32, 0x00105u32,
+        0x00684u32, 0x00868u32, 0x00105u32, 0x00281u32, 0x00868u32, 0x00105u32, 0x00080u32,
+        0x0009cu32, 0xfce58u32, 0x0007fu32,
+    ];
     #[test]
     fn misc_program_tests() {
         // Fibonacci
         let mut cpu = CpuState::default();
         let program2 = Program::from(PMEM2.as_slice());
 
-        while (!cpu.received_halt) {
+        while !cpu.received_halt {
             cpu.execute_next_prog_op(&program2)
         }
 
@@ -647,11 +727,30 @@ mod tests {
         cpu = CpuState::default();
         let program3 = Program::from(PMEM3.as_slice());
 
-        while (!cpu.received_halt) {
+        while !cpu.received_halt {
             cpu.execute_next_prog_op(&program3)
         }
 
         assert_eq!(cpu.registers[5], 233);
         assert_eq!(cpu.registers[2], 0x0);
+
+        // Hello world test
+        cpu = CpuState::default();
+        let program_helloworld = Program::from(PMEM6.as_slice());
+
+        while !cpu.received_halt {
+            cpu.execute_next_prog_op(&program_helloworld)
+        }
+
+        println!("{:#?}", cpu);
+
+        assert_eq!(cpu.registers[5], 0x0);
+        assert_eq!(cpu.registers[4], 0x0);
+        assert_eq!(cpu.registers[3], 0x8000);
+        assert_eq!(cpu.registers[2], 33);
+        assert_eq!(cpu.registers[1], 0x0);
+        assert_eq!(cpu.registers[0], 12);
+
+        assert_eq!(cpu.ostream.string, String::from("Hello world!"));
     }
 }
