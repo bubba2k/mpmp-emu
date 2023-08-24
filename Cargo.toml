@@ -7,7 +7,6 @@ edition = "2021"
 
 [dependencies]
 hex = "0.4.3"
-masm = { git = "https://gitlab.com/moseschmiedel/masm", tag = "v1.3.0" }
 
 # We use these to make working with our big Opcode enum defined
 # in decoder.rs easier
@@ -18,5 +17,5 @@ num-traits = "0.2"
 rand = "0.8"
 
 # For TUI
-tui = "0.19"
-crossterm = "0.25"
+ratatui = { version = "0.22.0", features = ["all-widgets"] }
+crossterm = "0.26"
