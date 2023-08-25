@@ -2,9 +2,10 @@ use std::fmt::Display;
 
 use crate::ir::*;
 
+#[derive(Debug, Clone, Copy)]
 pub struct InstructionWord {
-    buffer: u32, // A bitfield, essentially. We only need 20 bits but this is still the easiest way
-                 // to do it
+    pub buffer: u32, // A bitfield, essentially. We only need 20 bits but this is still the easiest way
+                     // to do it
 }
 
 // Enumeration of all possible opcodes

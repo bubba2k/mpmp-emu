@@ -10,7 +10,7 @@ pub struct Flags {
 
 type Registers = [u16; 6]; // the 6 registers
 
-const RAM_SIZE: usize = 32_768; // 2^15
+pub const RAM_SIZE: usize = 32_768; // 2^15
 type Ram = [u16; RAM_SIZE];
 
 const PMEM_SIZE: usize = 65_536; // 2^16

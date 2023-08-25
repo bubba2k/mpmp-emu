@@ -1,7 +1,6 @@
 use std::env;
 use std::error::Error;
 use std::io::{self, Stdout};
-use std::rc::Rc;
 use std::time::Duration;
 
 use ratatui::prelude::{
@@ -19,8 +18,8 @@ use crossterm::{
 use self::program::Program;
 use self::runtime::CpuState;
 
-mod frontend;
 mod decoder;
+mod frontend;
 mod hex_parser;
 mod ir;
 mod program;
@@ -33,31 +32,20 @@ extern crate num_derive;
 extern crate crossterm;
 extern crate ratatui;
 
-fn main() -> Result<(), Box<dyn Error>> {
+use crate::frontend::app::App;
+
+fn main() {
+    /*
     let args: Vec<String> = env::args().collect();
     let bytevec = hex_parser::bytevec_from_hexfile(&args[1]).unwrap();
     let program = Program::from(bytevec.as_slice());
     let mut cpu = CpuState::default();
+    */
 
-    let mut terminal = setup_terminal()?;
-    run(&mut terminal, &mut cpu, &program)?;
-    restore_terminal(&mut terminal)?;
-    Ok(())
-}
-
-fn setup_terminal() -> Result<Terminal<CrosstermBackend<Stdout>>, Box<dyn Error>> {
-    let mut stdout = io::stdout();
-    enable_raw_mode()?;
-    execute!(stdout, EnterAlternateScreen)?;
-    Ok(Terminal::new(CrosstermBackend::new(stdout))?)
-}
-
-fn restore_terminal(
-    terminal: &mut Terminal<CrosstermBackend<Stdout>>,
-) -> Result<(), Box<dyn Error>> {
-    disable_raw_mode()?;
-    execute!(terminal.backend_mut(), LeaveAlternateScreen,)?;
-    Ok(terminal.show_cursor()?)
+    let mut app = App::new();
+    app.init();
+    app.run();
+    app.quit();
 }
 
 fn run(
@@ -87,7 +75,7 @@ fn run(
 
             let cpustate_chunks = Layout::default()
                 .direction(Direction::Vertical)
-                .constraints([Constraint::Percentage(30), Constraint::Percentage(70)].as_ref())
+                .constraints([Constraint::Percentage(40), Constraint::Percentage(60)].as_ref())
                 .split(toplevel_chunks[0]);
 
             let stdout_block = Block::default()
@@ -103,7 +91,7 @@ fn run(
                 .title_alignment(Alignment::Center)
                 .borders(Borders::ALL);
             let ram_block = Block::default()
-                .title("RAM")
+                .title(" RAM ")
                 .title_alignment(Alignment::Center)
                 .borders(Borders::ALL)
                 .padding(Padding::new(1, 1, 1, 1));
