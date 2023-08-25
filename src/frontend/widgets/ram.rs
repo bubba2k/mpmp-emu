@@ -1,5 +1,4 @@
-use crate::runtime::CpuState;
-use crate::runtime::RAM_SIZE;
+use crate::backend::runtime::{CpuState, RAM_SIZE};
 
 use ratatui::prelude::Constraint;
 use ratatui::prelude::{Buffer, Color, Rect};

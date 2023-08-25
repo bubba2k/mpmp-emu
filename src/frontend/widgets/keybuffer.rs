@@ -3,7 +3,7 @@ use ratatui::prelude::{Alignment, Buffer, Color, Constraint, Rect};
 use ratatui::style::Stylize;
 use ratatui::widgets::{Block, Borders, Padding, Paragraph, Widget, Wrap};
 
-use crate::runtime::{CpuState, Flags};
+use crate::backend::runtime::{CpuState, Flags};
 
 pub struct KeybufferWidget<'a> {
     keys: &'a String,

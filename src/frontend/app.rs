@@ -1,4 +1,3 @@
-use crate::hex_parser;
 use ratatui::prelude::{
     Alignment, Color, Constraint, CrosstermBackend, Direction, Layout, Rect, Style,
 };
@@ -15,9 +14,10 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
+use crate::backend;
+use crate::backend::program::Program;
+use crate::backend::runtime::CpuState;
 use crate::frontend::widgets::*;
-use crate::program::Program;
-use crate::runtime::CpuState;
 
 pub struct App {
     cpu: CpuState,
@@ -130,7 +130,7 @@ impl App {
     }
 
     pub fn try_load_program(&mut self, path: String) -> bool {
-        let res = hex_parser::bytevec_from_hexfile(path.clone());
+        let res = backend::hex_parser::bytevec_from_hexfile(path.clone());
         match res {
             Err(_) => {
                 self.log_messages

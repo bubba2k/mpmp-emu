@@ -1,6 +1,6 @@
 use std::fmt::Display;
 
-use crate::ir::*;
+use super::ir::*;
 
 #[derive(Debug, Clone, Copy)]
 pub struct InstructionWord {

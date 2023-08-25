@@ -1,5 +1,4 @@
-use crate::decoder::InstructionWord;
-
+use super::decoder::InstructionWord;
 use super::ir::*;
 
 pub struct Program {

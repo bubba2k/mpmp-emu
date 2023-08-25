@@ -3,7 +3,7 @@ use ratatui::prelude::{Alignment, Buffer, Color, Constraint, Rect};
 use ratatui::style::Stylize;
 use ratatui::widgets::{Block, Borders, Cell, Row, StatefulWidget, Table, Widget};
 
-use crate::runtime::{CpuState, Flags};
+use crate::backend::runtime::{CpuState, Flags};
 
 pub struct RegistersDisplayWidget<'a> {
     pcounter_ref: &'a u16,

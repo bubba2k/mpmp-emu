@@ -1,5 +1,5 @@
-use crate::program::Program;
-use crate::runtime::CpuState;
+use crate::backend::program::Program;
+use crate::backend::runtime::CpuState;
 
 use num_traits::{clamp_max, clamp_min};
 use ratatui::prelude::{Buffer, Color, Constraint, Rect};
