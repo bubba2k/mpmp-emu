@@ -1,4 +1,5 @@
-use ratatui::prelude::{Alignment, Buffer, Color, Rect};
+use ratatui::prelude::{Alignment, Buffer, Color, Constraint, Rect};
+
 use ratatui::style::Stylize;
 use ratatui::widgets::{Block, Borders, Cell, Row, StatefulWidget, Table, Widget};
 
@@ -50,14 +51,13 @@ impl<'a> StatefulWidget for RegistersDisplayWidget<'a> {
             .fg(Color::LightMagenta),
         );
 
-        /*
         // registers
         for i in 0..6 {
             rows.push(Row::new(vec![
                 format!("reg{}", i),
                 state.get_number_repr(self.registers_ref[i as usize]),
             ]));
-        } */
+        }
 
         // Flags... TODO: Make this prettier
         rows.push(Row::new(vec![
@@ -69,12 +69,15 @@ impl<'a> StatefulWidget for RegistersDisplayWidget<'a> {
             format!("{}", self.flags_ref.zero),
         ]));
 
-        let table = Table::new(rows).column_spacing(1).block(
-            Block::default()
-                .title(" Registers ")
-                .title_alignment(Alignment::Center)
-                .borders(Borders::ALL),
-        );
+        let table = Table::new(rows)
+            .column_spacing(1)
+            .block(
+                Block::default()
+                    .title(" Registers ")
+                    .title_alignment(Alignment::Center)
+                    .borders(Borders::ALL),
+            )
+            .widths([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref());
 
         Widget::render(table, area, buf)
     }

@@ -1,6 +1,7 @@
 use crate::runtime::CpuState;
 use crate::runtime::RAM_SIZE;
 
+use ratatui::prelude::Constraint;
 use ratatui::prelude::{Buffer, Color, Rect};
 use ratatui::style::Stylize;
 use ratatui::widgets::{Block, Borders, Cell, Row, StatefulWidget, Table, Widget};
@@ -47,7 +48,17 @@ impl<'a> StatefulWidget for RamTableWidget<'a> {
 
         let table = Table::new(rows)
             .block(Block::default().title(" RAM ").borders(Borders::ALL))
-            .column_spacing(1);
+            .column_spacing(1)
+            .widths(
+                [
+                    Constraint::Percentage(20),
+                    Constraint::Percentage(20),
+                    Constraint::Percentage(20),
+                    Constraint::Percentage(20),
+                    Constraint::Percentage(20),
+                ]
+                .as_ref(),
+            );
 
         Widget::render(table, area, buf)
     }

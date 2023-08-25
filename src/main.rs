@@ -35,17 +35,17 @@ extern crate ratatui;
 use crate::frontend::app::App;
 
 fn main() {
-    /*
     let args: Vec<String> = env::args().collect();
-    let bytevec = hex_parser::bytevec_from_hexfile(&args[1]).unwrap();
-    let program = Program::from(bytevec.as_slice());
-    let mut cpu = CpuState::default();
-    */
+    let default_path = "helpers/hex/tty_test.hex";
 
     let mut app = App::new();
-    app.init();
+    if args.len() < 2 {
+        app.try_load_program(String::from(default_path));
+    } else {
+        app.try_load_program(args[1].clone());
+    }
     app.run();
-    app.quit();
+    app.quit().expect("Quitting should work");
 }
 
 fn run(

@@ -2,7 +2,7 @@ use crate::program::Program;
 use crate::runtime::CpuState;
 
 use num_traits::{clamp_max, clamp_min};
-use ratatui::prelude::{Buffer, Color, Rect};
+use ratatui::prelude::{Buffer, Color, Constraint, Rect};
 use ratatui::style::{Styled, Stylize};
 use ratatui::widgets::{Block, Borders, Cell, Row, StatefulWidget, Table, Widget};
 
@@ -12,16 +12,18 @@ pub struct PmemTableWidget<'a> {
 }
 
 pub struct PmemTableState {
-    pub starting_row: u32,
-    pub n_rows: u32,
+    pub viewport_begin: u32,
+    pub viewport_end: u32,
+    pub max_visible_lines: u32,
     pub focus_executing: bool, // True if table should center around executing instruction
 }
 
 impl Default for PmemTableState {
     fn default() -> Self {
         PmemTableState {
-            starting_row: 0,
-            n_rows: 24,
+            viewport_begin: 0,
+            viewport_end: 24,
+            max_visible_lines: 24,
             focus_executing: true,
         }
     }
@@ -40,18 +42,36 @@ impl<'a> StatefulWidget for PmemTableWidget<'a> {
     type State = PmemTableState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
-        // Make sure nothing bad happens
-        state.n_rows = clamp_max(state.n_rows, self.program.operations.len() as u32);
-
-        // Focus on the executing instruction if required
+        // Focus the executing instruction if desired
         if state.focus_executing {
-            state.starting_row = *self.program_counter as u32 - (state.n_rows / 2);
+            let program_counter_u32 = *self.program_counter as u32;
+            // Program counter outside viewport - this can happen during jumps
+            if !(state.viewport_begin..state.viewport_end).contains(&program_counter_u32) {
+                state.viewport_begin = program_counter_u32.saturating_sub(4);
+            }
+            // Program counter near top
+            else if program_counter_u32 <= state.viewport_begin + 10 {
+                state.viewport_begin = state.viewport_begin.saturating_sub(1);
+            }
+            // Program counter near bottom
+            else if program_counter_u32 >= state.viewport_end - 10 {
+                state.viewport_begin = state.viewport_begin.saturating_add(1);
+            }
+
+            state.viewport_end = state.viewport_begin.saturating_add(state.max_visible_lines);
         }
 
         // Create the empty row vector to be populated
         let mut rows = Vec::new();
 
-        for i in state.starting_row..(state.starting_row + state.n_rows) {
+        // Build the rows, make sure to clamp the viewport to progam begin/end
+        for i in state
+            .viewport_begin
+            .clamp(0, self.program.operations.len() as u32)
+            ..state
+                .viewport_end
+                .clamp(0, self.program.operations.len() as u32)
+        {
             let mut cells = Vec::new();
 
             // Build the cells, address first
@@ -87,7 +107,15 @@ impl<'a> StatefulWidget for PmemTableWidget<'a> {
                     .title(" Program Memory ")
                     .borders(Borders::ALL),
             )
-            .column_spacing(1);
+            .column_spacing(1)
+            .widths(
+                [
+                    Constraint::Percentage(20),
+                    Constraint::Percentage(30),
+                    Constraint::Percentage(50),
+                ]
+                .as_ref(),
+            );
 
         Widget::render(table, area, buf)
     }
