@@ -1,6 +1,3 @@
-pub mod app;
-mod pmem;
-mod ram;
-mod registers;
-mod keybuffer;
-mod terminal;
+mod app;
+mod widgets;
+pub use app::App;

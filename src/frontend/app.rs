@@ -3,7 +3,6 @@ use ratatui::prelude::{
     Alignment, Color, Constraint, CrosstermBackend, Direction, Layout, Rect, Style,
 };
 use ratatui::widgets::{Cell, Row, Table};
-use std::env;
 use std::error::Error;
 use std::io::{self, Stdout};
 use std::time::Duration;
@@ -16,11 +15,7 @@ use crossterm::{
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
 
-use crate::frontend::keybuffer::KeybufferWidget;
-use crate::frontend::pmem::{PmemTableState, PmemTableWidget};
-use crate::frontend::ram::{RamTableState, RamTableWidget};
-use crate::frontend::registers::{RegistersDisplayState, RegistersDisplayWidget};
-use crate::frontend::terminal::TerminalWidget;
+use crate::frontend::widgets::*;
 use crate::program::Program;
 use crate::runtime::CpuState;
 
