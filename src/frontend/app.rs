@@ -19,6 +19,8 @@ use crate::backend::program::Program;
 use crate::backend::runtime::CpuState;
 use crate::frontend::widgets::*;
 
+use super::log::*;
+
 pub struct App {
     cpu: CpuState,
     program: Program,
@@ -35,7 +37,7 @@ pub struct App {
     pmem_widget_state: PmemTableState,
     registers_widget_state: RegistersDisplayState,
 
-    log_messages: Vec<String>,
+    message_log: Log,
 }
 
 impl App {
@@ -78,7 +80,7 @@ impl App {
             pmem_widget_state: PmemTableState::default(),
             registers_widget_state: RegistersDisplayState::default(),
             terminal,
-            log_messages: Vec::new(),
+            message_log: Log::default(),
             rightpanel_layout,
         }
     }
@@ -97,15 +99,7 @@ impl App {
                 let register_display = RegistersDisplayWidget::new(&self.cpu);
                 let keybuffer_widget = KeybufferWidget::new(&self.cpu.istream.string);
                 let terminal_widget = TerminalWidget::new(&self.cpu.ostream.string);
-
-                let message_table = Table::new(
-                    self.log_messages
-                        .iter()
-                        .map(|msg| Row::new([Cell::from(msg.clone())]))
-                        .collect::<Vec<Row>>(),
-                )
-                .column_spacing(1)
-                .widths([Constraint::Percentage(100)].as_ref());
+                let log_widget = LogWidget::new(&self.message_log);
 
                 frame.render_stateful_widget(
                     ram_table,
@@ -122,9 +116,9 @@ impl App {
                     cpustate_chunks[0],
                     &mut self.registers_widget_state,
                 );
-                frame.render_widget(message_table, rightpanel_chunks[1]);
                 frame.render_widget(keybuffer_widget, tty_chunks[1]);
                 frame.render_widget(terminal_widget, tty_chunks[0]);
+                frame.render_widget(log_widget, rightpanel_chunks[1]);
             })
             .unwrap();
     }
@@ -133,14 +127,18 @@ impl App {
         let res = backend::hex_parser::bytevec_from_hexfile(path.clone());
         match res {
             Err(_) => {
-                self.log_messages
-                    .push(format!("Failed to load file '{}'", path));
+                self.message_log.log(Message::new(
+                    MessageType::Error,
+                    format!("Failed to load file {}.", path),
+                ));
                 false
             }
             Ok(bytes) => {
                 self.program = Program::from(bytes.as_slice());
-                self.log_messages
-                    .push(format!("Successfully loaded '{}'", path));
+                self.message_log.log(Message::new(
+                    MessageType::Info,
+                    format!("Successfully loaded file {}.", path),
+                ));
                 true
             }
         }
@@ -148,13 +146,16 @@ impl App {
 
     pub fn run(&mut self) {
         loop {
-            if !self.cpu.received_halt {
+            self.draw();
+            if !self.cpu.received_halt && self.program.operations.len() > 0 {
                 self.cpu.execute_next_prog_op(&self.program);
                 if self.cpu.received_halt {
-                    self.log_messages.push(String::from("CPU recieved halt"));
+                    self.message_log.log(Message::new(
+                        MessageType::Info,
+                        String::from("CPU received halt"),
+                    ));
                 }
             }
-            self.draw();
             // Event handling
             if event::poll(Duration::from_millis(50)).expect("Should work") {
                 if let crossterm::event::Event::Key(key) = event::read().unwrap() {

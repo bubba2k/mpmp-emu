@@ -1,7 +1,7 @@
 use crate::backend::runtime::{CpuState, RAM_SIZE};
 
 use ratatui::prelude::Constraint;
-use ratatui::prelude::{Buffer, Color, Rect};
+use ratatui::prelude::{Buffer, Color, Rect, Alignment};
 use ratatui::style::Stylize;
 use ratatui::widgets::{Block, Borders, Cell, Row, StatefulWidget, Table, Widget};
 
@@ -29,8 +29,19 @@ impl<'a> StatefulWidget for RamTableWidget<'a> {
         // Build the table
         let mut rows: Vec<Row> = Vec::new();
 
+        // We build a vector of indices to render here, because we want the ram widget to
+        // be able to wrap around
         let ending_row = state.starting_row + state.n_rows;
-        for row in state.starting_row..ending_row {
+        let indices = if ending_row < LINE_MAX {
+            (state.starting_row..ending_row).collect::<Vec<u32>>()
+        } else {
+            let vec = (state.starting_row..LINE_MAX)
+                .collect::<Vec<u32>>()
+                .append(&mut (0..(ending_row - LINE_MAX)).collect::<Vec<u32>>());
+            return vec;
+        };
+
+        for row in indices {
             let row_mem_address = row * 4;
 
             // Push row address
@@ -46,7 +57,7 @@ impl<'a> StatefulWidget for RamTableWidget<'a> {
         }
 
         let table = Table::new(rows)
-            .block(Block::default().title(" RAM ").borders(Borders::ALL))
+            .block(Block::default().title(" RAM ").title_alignment(Alignment::Center).borders(Borders::ALL))
             .column_spacing(1)
             .widths(
                 [

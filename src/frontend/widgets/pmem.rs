@@ -2,7 +2,7 @@ use crate::backend::program::Program;
 use crate::backend::runtime::CpuState;
 
 use num_traits::{clamp_max, clamp_min};
-use ratatui::prelude::{Buffer, Color, Constraint, Rect};
+use ratatui::prelude::{Buffer, Color, Constraint, Rect, Alignment};
 use ratatui::style::{Styled, Stylize};
 use ratatui::widgets::{Block, Borders, Cell, Row, StatefulWidget, Table, Widget};
 
@@ -104,7 +104,7 @@ impl<'a> StatefulWidget for PmemTableWidget<'a> {
         let table = Table::new(rows)
             .block(
                 Block::default()
-                    .title(" Program Memory ")
+                    .title(" Program Memory ").title_alignment(Alignment::Center)
                     .borders(Borders::ALL),
             )
             .column_spacing(1)
