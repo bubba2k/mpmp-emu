@@ -1,7 +1,7 @@
 use ratatui::prelude::{Alignment, Color, Constraint};
 
 use ratatui::style::Stylize;
-use ratatui::widgets::{Block, Borders, Row, StatefulWidget, Table, Widget};
+use ratatui::widgets::{Block, Borders, Cell, Row, StatefulWidget, Table, Widget};
 
 use crate::backend::runtime::{CpuState, Flags};
 
@@ -42,42 +42,57 @@ impl<'a> StatefulWidget for RegistersDisplayWidget<'a> {
     ) {
         let mut rows = Vec::new();
 
-        // program counter
-        rows.push(
-            Row::new(vec![
-                String::from("pc"),
-                state.get_number_repr(*self.pcounter_ref),
-            ])
-            .fg(Color::LightMagenta),
-        );
-
-        // registers
-        for i in 0..6 {
-            rows.push(Row::new(vec![
-                format!("reg{}", i),
-                state.get_number_repr(self.registers_ref[i as usize]),
-            ]));
-        }
-
-        // Flags... TODO: Make this prettier
+        // Build the rows
         rows.push(Row::new(vec![
-            String::from("carry"),
-            format!("{}", self.flags_ref.carry),
+            Cell::from("%reg0").blue(),
+            Cell::from(state.get_number_repr(self.registers_ref[0])),
+            Cell::from("pc").magenta(),
+            Cell::from(state.get_number_repr(*self.pcounter_ref)),
         ]));
+
         rows.push(Row::new(vec![
-            String::from("zero"),
-            format!("{}", self.flags_ref.zero),
+            Cell::from("%reg1").blue(),
+            Cell::from(state.get_number_repr(self.registers_ref[1])),
+            Cell::from("zero").green(),
+            Cell::from(format!("{}", self.flags_ref.zero)),
         ]));
+
+        rows.push(Row::new(vec![
+            Cell::from("%reg2").blue(),
+            Cell::from(state.get_number_repr(self.registers_ref[2])),
+            Cell::from("carry").green(),
+            Cell::from(format!("{}", self.flags_ref.carry)),
+        ]));
+
+        let mut remaining_rows = (3..6)
+            .into_iter()
+            .map(|i| {
+                Row::new(vec![
+                    Cell::from(format!("%reg{}", i)).blue(),
+                    Cell::from(state.get_number_repr(self.registers_ref[i])),
+                ])
+            })
+            .collect();
+
+        rows.append(&mut remaining_rows);
 
         let table = Table::new(rows)
             .column_spacing(1)
             .block(
                 Block::default()
-                    .title(" Registers ")
+                    .title(" Registers / Flags")
                     .title_alignment(Alignment::Center)
                     .borders(Borders::ALL),
             )
-            .widths([Constraint::Percentage(20), Constraint::Percentage(80)].as_ref());
+            .widths(
+                [
+                    Constraint::Percentage(25),
+                    Constraint::Percentage(25),
+                    Constraint::Percentage(25),
+                    Constraint::Percentage(25),
+                ]
+                .as_ref(),
+            );
 
         Widget::render(table, area, buf)
     }
