@@ -242,16 +242,14 @@ impl App {
             Err(_) => {
                 self.message_log.log(Message::new(
                     MessageType::Error,
-                    format!("Failed to load file {}.", path),
+                    format!("Failed loading {}", path),
                 ));
                 false
             }
             Ok(bytes) => {
                 self.program = Program::from(bytes.as_slice());
-                self.message_log.log(Message::new(
-                    MessageType::Info,
-                    format!("Successfully loaded file {}.", path),
-                ));
+                self.message_log
+                    .log(Message::new(MessageType::Info, format!("Loaded {}", path)));
                 true
             }
         }
@@ -344,6 +342,8 @@ impl App {
             }
             KeyCode::F(3) => {
                 self.reset_cpu();
+                self.message_log
+                    .log(Message::new(MessageType::Info, String::from("Reset CPU")));
                 true
             }
             KeyCode::F(4) => {
