@@ -92,7 +92,7 @@ impl App {
 
         let cpustate_layout = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([Constraint::Percentage(40), Constraint::Percentage(60)].as_ref());
+            .constraints([Constraint::Max(8), Constraint::Percentage(60)].as_ref());
 
         let rightpanel_layout = Layout::default()
             .direction(Direction::Vertical)
