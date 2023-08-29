@@ -1,7 +1,7 @@
-use ratatui::prelude::{Alignment, Buffer, Color, Constraint, Rect};
+use ratatui::prelude::{Alignment, Color, Constraint};
 
 use ratatui::style::Stylize;
-use ratatui::widgets::{Block, Borders, Cell, Row, StatefulWidget, Table, Widget};
+use ratatui::widgets::{Block, Borders, Row, StatefulWidget, Table, Widget};
 
 use crate::backend::runtime::{CpuState, Flags};
 

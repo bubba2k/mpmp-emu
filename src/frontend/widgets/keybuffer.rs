@@ -1,12 +1,15 @@
-use ratatui::prelude::{Alignment, Buffer, Color, Constraint, Rect};
+use ratatui::prelude::{Alignment, Buffer, Rect};
 
-use ratatui::style::Stylize;
-use ratatui::widgets::{Block, Borders, Padding, Paragraph, Widget, Wrap};
-
-use crate::backend::runtime::{CpuState, Flags};
+use ratatui::widgets::{
+    Block, BorderType, Borders, Padding, Paragraph, StatefulWidget, Widget, Wrap,
+};
 
 pub struct KeybufferWidget<'a> {
     keys: &'a String,
+}
+
+pub struct KeybufferWidgetState {
+    pub focused: bool,
 }
 
 impl<'a> KeybufferWidget<'a> {
@@ -15,8 +18,10 @@ impl<'a> KeybufferWidget<'a> {
     }
 }
 
-impl<'a> Widget for KeybufferWidget<'a> {
-    fn render(self, area: Rect, buf: &mut Buffer) {
+impl<'a> StatefulWidget for KeybufferWidget<'a> {
+    type State = KeybufferWidgetState;
+
+    fn render(self, area: Rect, buf: &mut Buffer, state: &mut KeybufferWidgetState) {
         // We want to explicitely display newlines as '\n' in the UI
         // The way this is implemented right now is most likely very slow
         let formatted_string = self
@@ -40,7 +45,17 @@ impl<'a> Widget for KeybufferWidget<'a> {
                 Block::new()
                     .title(" Input Buffer ")
                     .title_alignment(Alignment::Center)
-                    .borders(Borders::ALL),
+                    .padding(Padding {
+                        left: 1,
+                        right: 1,
+                        bottom: 0,
+                        top: 0,
+                    })
+                    .borders(Borders::ALL)
+                    .border_type(match state.focused {
+                        true => BorderType::Thick,
+                        false => BorderType::Plain,
+                    }),
             );
 
         paragraph.render(area, buf);

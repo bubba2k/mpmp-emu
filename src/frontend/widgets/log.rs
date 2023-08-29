@@ -1,9 +1,9 @@
 use chrono::offset::Utc;
 use chrono::DateTime;
-use ratatui::prelude::{Alignment, Buffer, Color, Constraint, Rect};
+use ratatui::prelude::{Buffer, Color, Constraint, Rect};
 
 use ratatui::style::Stylize;
-use ratatui::widgets::{Block, Borders, Cell, Row, StatefulWidget, Table, Widget};
+use ratatui::widgets::{Cell, Row, Table, Widget};
 
 use crate::frontend::log::{Log, Message, MessageType};
 
@@ -37,7 +37,6 @@ impl<'a> Widget for LogWidget<'a> {
                         MessageType::Warning => Color::Yellow,
                     }),
                 ])
-                .height(2)
             })
             .collect::<Vec<Row>>();
 

@@ -1,9 +1,6 @@
-use ratatui::prelude::{Alignment, Buffer, Color, Constraint, Rect};
+use ratatui::prelude::{Alignment, Buffer, Rect};
 
-use ratatui::style::Stylize;
-use ratatui::widgets::{Block, Borders, Padding, Paragraph, Widget, Wrap};
-
-use crate::backend::runtime::{CpuState, Flags};
+use ratatui::widgets::{Block, Borders, Paragraph, Widget, Wrap};
 
 pub struct TerminalWidget<'a> {
     buffer: &'a String,

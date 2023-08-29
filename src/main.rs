@@ -11,6 +11,7 @@ extern crate ratatui;
 
 mod backend;
 mod frontend;
+mod util;
 
 use frontend::App;
 use std::env;
