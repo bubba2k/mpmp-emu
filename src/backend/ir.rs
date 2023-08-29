@@ -129,9 +129,17 @@ impl Operation {
                     format!("{} {}", self.get_assembly_opname(), *offset)
                 }
             },
-            Load { source, .. } => match source {
+            Load {
+                source,
+                target_register,
+            } => match source {
                 LoadSource::Constant(constant) => {
-                    format!("{} {:#X}", self.get_assembly_opname(), *constant)
+                    format!(
+                        "{} %reg{} {:#X}",
+                        self.get_assembly_opname(),
+                        *target_register,
+                        *constant
+                    )
                 }
                 LoadSource::RAM { address_register } => {
                     format!("{} %reg{}", self.get_assembly_opname(), *address_register)
