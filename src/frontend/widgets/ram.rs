@@ -109,4 +109,8 @@ impl RamTableState {
             self.starting_row = (tmp as u32) % RAM_MAX_LINES;
         }
     }
+
+    pub fn goto_address(&mut self, address: u32) {
+        self.starting_row = address.clamp(0, RAM_SIZE as u32) / 4;
+    }
 }

@@ -2,6 +2,7 @@ use ratatui::prelude::{Constraint, CrosstermBackend, Direction, Layout};
 
 use std::error::Error;
 use std::io::{self, Stdout};
+use std::str::FromStr;
 use std::time::Duration;
 
 use ratatui::Terminal;
@@ -46,8 +47,6 @@ pub struct App {
     pmem_widget_state: PmemTableState,
     registers_widget_state: RegistersDisplayState,
     keybuffer_widget_state: KeybufferWidgetState,
-
-    prompt_state: PromptState,
 
     message_log: Log,
 
@@ -98,7 +97,6 @@ impl App {
             ram_widget_state: RamTableState::default(),
             pmem_widget_state: PmemTableState::default(),
             registers_widget_state: RegistersDisplayState::default(),
-            prompt_state: PromptState::default(),
             keybuffer_widget_state: KeybufferWidgetState { focused: true },
 
             terminal,
@@ -145,21 +143,56 @@ impl App {
                 );
                 frame.render_widget(terminal_widget, tty_chunks[0]);
                 frame.render_widget(log_widget, rightpanel_chunks[1]);
-
-                if self.prompt_state.is_active() {
-                    let prompt_chunk = Layout::default()
-                        .direction(Direction::Vertical)
-                        .constraints([Constraint::Percentage(100)])
-                        .margin(10)
-                        .split(frame.size())[0];
-                    frame.render_stateful_widget(
-                        PromptWidget::new(),
-                        prompt_chunk,
-                        &mut self.prompt_state,
-                    )
-                }
             })
             .unwrap();
+    }
+
+    fn prompt<T: FromStr>(&mut self, prompt_text: &str) -> Option<T> {
+        let mut input_buffer = String::new();
+
+        loop {
+            let prompt_widget = PromptWidget::new(prompt_text, &input_buffer);
+            let vertical_area = Layout::default()
+                .direction(Direction::Vertical)
+                .constraints([
+                    Constraint::Percentage(33),
+                    Constraint::Max(4),
+                    Constraint::Percentage(33),
+                ])
+                .split(self.terminal.get_frame().size())[1];
+            let area = Layout::default()
+                .direction(Direction::Horizontal)
+                .constraints([
+                    Constraint::Percentage(33),
+                    Constraint::Max(64),
+                    Constraint::Percentage(33),
+                ])
+                .split(vertical_area)[1];
+            self.terminal
+                .draw(|frame| frame.render_widget(prompt_widget, area))
+                .unwrap();
+
+            if event::poll(Duration::from_millis(0)).unwrap() {
+                if let crossterm::event::Event::Key(key) = event::read().unwrap() {
+                    match key.code {
+                        KeyCode::Char(c) => input_buffer.push(c),
+                        KeyCode::Backspace => {
+                            let _ = input_buffer.pop();
+                        }
+                        KeyCode::Esc => {
+                            return None;
+                        }
+                        KeyCode::Enter => match str::parse::<T>(&input_buffer) {
+                            Ok(val) => return Some(val),
+                            Err(_) => {
+                                input_buffer.clear();
+                            }
+                        },
+                        _ => {}
+                    }
+                }
+            }
+        }
     }
 
     pub fn try_load_program(&mut self, path: String) -> bool {
@@ -245,7 +278,10 @@ impl App {
             KeyCode::Down | KeyCode::Char('j') => self.ram_widget_state.scroll(1),
             KeyCode::PageUp | KeyCode::Char('K') => self.ram_widget_state.scroll(-16),
             KeyCode::PageDown | KeyCode::Char('J') => self.ram_widget_state.scroll(16),
-            KeyCode::Char('G') => self.prompt_state.new_prompt(String::from("Goto line:")),
+            KeyCode::Char('g') => match self.prompt::<u32>("Go to RAM address: ") {
+                None => {}
+                Some(n) => self.ram_widget_state.goto_address(n),
+            },
             KeyCode::Tab => {
                 self.ui_mode = UiMode::Normal;
                 self.ram_widget_state.is_focussed = false;
