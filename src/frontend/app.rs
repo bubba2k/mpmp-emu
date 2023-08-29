@@ -22,9 +22,27 @@ use crate::util::Timer;
 use super::log::*;
 
 enum UiMode {
-    Normal,
+    InspectTerminal,
     InspectRam,
     InspectProgram,
+}
+
+impl UiMode {
+    pub fn next(&mut self) {
+        match *self {
+            UiMode::InspectRam => *self = UiMode::InspectTerminal,
+            UiMode::InspectTerminal => *self = UiMode::InspectProgram,
+            UiMode::InspectProgram => *self = UiMode::InspectRam,
+        }
+    }
+
+    pub fn previous(&mut self) {
+        match *self {
+            UiMode::InspectTerminal => *self = UiMode::InspectRam,
+            UiMode::InspectRam => *self = UiMode::InspectProgram,
+            UiMode::InspectProgram => *self = UiMode::InspectTerminal,
+        }
+    }
 }
 
 pub struct App {
@@ -51,6 +69,8 @@ pub struct App {
     message_log: Log,
 
     should_quit: bool,
+    cpu_running: bool,
+    cpu_step_requested: bool,
 }
 
 impl App {
@@ -87,8 +107,10 @@ impl App {
             cpu: CpuState::default(),
             program: Program::default(),
             execution_timer: Timer::new(Duration::from_millis(250)),
+            cpu_running: false,
+            cpu_step_requested: false,
 
-            ui_mode: UiMode::Normal,
+            ui_mode: UiMode::InspectTerminal,
             should_quit: false,
 
             toplevel_layout,
@@ -120,6 +142,25 @@ impl App {
                 let keybuffer_widget = KeybufferWidget::new(&self.cpu.istream.string);
                 let terminal_widget = TerminalWidget::new(&self.cpu.ostream.string);
                 let log_widget = LogWidget::new(&self.message_log);
+
+                // Set the right widget to focussed
+                match self.ui_mode {
+                    UiMode::InspectTerminal => {
+                        self.keybuffer_widget_state.focused = true;
+                        self.ram_widget_state.is_focussed = false;
+                        self.pmem_widget_state.is_focussed = false;
+                    }
+                    UiMode::InspectRam => {
+                        self.keybuffer_widget_state.focused = false;
+                        self.ram_widget_state.is_focussed = true;
+                        self.pmem_widget_state.is_focussed = false;
+                    }
+                    UiMode::InspectProgram => {
+                        self.keybuffer_widget_state.focused = false;
+                        self.ram_widget_state.is_focussed = false;
+                        self.pmem_widget_state.is_focussed = true;
+                    }
+                }
 
                 frame.render_stateful_widget(
                     ram_table,
@@ -216,22 +257,63 @@ impl App {
         }
     }
 
+    fn reset_cpu(&mut self) {
+        self.cpu_step_requested = false;
+        self.cpu_running = false;
+        self.cpu = CpuState::default();
+    }
+
+    fn update_cpu(&mut self) {
+        // If program empty or cpu halted, skip
+        if self.program.operations.len() == 0 || self.cpu.received_halt {
+            return;
+        }
+
+        // Free running
+        if self.cpu_running && self.execution_timer.has_elapsed() {
+            self.cpu.execute_next_prog_op(&self.program);
+            self.execution_timer.reset();
+            if self.cpu.received_halt {
+                self.message_log.log(Message::new(
+                    MessageType::Info,
+                    String::from("CPU received halt."),
+                ))
+            }
+        }
+
+        // Single step
+        if self.cpu_step_requested {
+            self.cpu.execute_next_prog_op(&self.program);
+            if self.cpu.received_halt {
+                self.message_log.log(Message::new(
+                    MessageType::Info,
+                    String::from("CPU received halt."),
+                ))
+            }
+            self.cpu_step_requested = false;
+        }
+
+        // Stop if a breakpoint got reached
+        if (self.cpu_running || self.cpu_step_requested)
+            && self.program.breakpoints[self
+                .cpu
+                .pcounter
+                .clamp(0, (self.program.operations.len() - 1) as u16)
+                as usize]
+        {
+            self.cpu_running = false;
+            self.message_log.log(Message::new(
+                MessageType::Info,
+                format!("Reached breakpoint at {:#X}", self.cpu.pcounter),
+            ))
+        }
+    }
+
     pub fn run(&mut self) {
         loop {
             self.draw();
 
-            if self.execution_timer.has_elapsed() {
-                self.execution_timer.reset();
-                if !self.cpu.received_halt && self.program.operations.len() > 0 {
-                    self.cpu.execute_next_prog_op(&self.program);
-                    if self.cpu.received_halt {
-                        self.message_log.log(Message::new(
-                            MessageType::Info,
-                            String::from("CPU received halt"),
-                        ));
-                    }
-                }
-            }
+            self.update_cpu();
 
             self.handle_input();
 
@@ -241,12 +323,64 @@ impl App {
         }
     }
 
+    // Returns true if keyevent was used/consumend
+    fn handle_input_general(&mut self, key: &KeyEvent) -> bool {
+        match key.code {
+            KeyCode::Esc => {
+                let opt = self.prompt::<bool>("Really quit? (true/false)");
+                match opt {
+                    Some(b) => self.should_quit = b,
+                    None => {}
+                }
+                true
+            }
+            KeyCode::Tab => {
+                self.ui_mode.next();
+                true
+            }
+            KeyCode::BackTab => {
+                self.ui_mode.previous();
+                true
+            }
+            KeyCode::F(3) => {
+                self.reset_cpu();
+                true
+            }
+            KeyCode::F(4) => {
+                let opt = self.prompt::<u32>("Set execution delay (ms)");
+                match opt {
+                    Some(n) => self
+                        .execution_timer
+                        .set_duration(Duration::from_millis(n as u64)),
+                    None => {}
+                }
+                true
+            }
+            KeyCode::F(5) => {
+                self.cpu_running = !self.cpu_running;
+                true
+            }
+            KeyCode::F(6) => {
+                self.cpu_step_requested = true;
+                true
+            }
+            _ => false,
+        }
+    }
+
     fn handle_input(&mut self) {
         // Event handling
         if event::poll(Duration::from_millis(0)).unwrap() {
             if let crossterm::event::Event::Key(key) = event::read().unwrap() {
+                // General input (always applicable), these are handled by the below
+                // call and we return right away if the input was consumed
+                if self.handle_input_general(&key) {
+                    return;
+                }
+
+                // Specific input
                 match self.ui_mode {
-                    UiMode::Normal => self.handle_event_normal(key),
+                    UiMode::InspectTerminal => self.handle_event_terminal(key),
                     UiMode::InspectRam => self.handle_event_ram(key),
                     UiMode::InspectProgram => self.handle_event_program(key),
                 }
@@ -255,19 +389,13 @@ impl App {
     }
 
     // The following functions are input handlers for each context
-    fn handle_event_normal(&mut self, key: KeyEvent) {
+    fn handle_event_terminal(&mut self, key: KeyEvent) {
         match key.code {
-            KeyCode::Esc => self.should_quit = true,
             KeyCode::Char(c) => self.cpu.istream.append_char(c),
             KeyCode::Enter => self.cpu.istream.append_char('\n'),
             KeyCode::Backspace => {
                 self.cpu.istream.string.pop();
                 ()
-            }
-            KeyCode::Tab => {
-                self.ui_mode = UiMode::InspectProgram;
-                self.keybuffer_widget_state.focused = false;
-                self.pmem_widget_state.is_focussed = true;
             }
             _ => {}
         }
@@ -282,11 +410,6 @@ impl App {
                 None => {}
                 Some(n) => self.ram_widget_state.goto_address(n),
             },
-            KeyCode::Tab => {
-                self.ui_mode = UiMode::Normal;
-                self.ram_widget_state.is_focussed = false;
-                self.keybuffer_widget_state.focused = true;
-            }
             _ => {}
         }
     }
@@ -307,11 +430,6 @@ impl App {
                 self.program.breakpoints[self.pmem_widget_state.selected as usize] =
                     !selected_is_breakpoint;
             }
-            KeyCode::Tab => {
-                self.ui_mode = UiMode::InspectRam;
-                self.pmem_widget_state.is_focussed = false;
-                self.ram_widget_state.is_focussed = true;
-            }
             _ => {}
         }
     }
@@ -323,6 +441,8 @@ impl App {
         self.registers_widget_state = RegistersDisplayState::default();
         self.ram_widget_state = RamTableState::default();
         self.pmem_widget_state = PmemTableState::default();
+        self.keybuffer_widget_state = KeybufferWidgetState { focused: true };
+        self.ui_mode = UiMode::InspectTerminal;
     }
 
     pub fn quit(&mut self) -> Result<(), Box<dyn Error>> {
