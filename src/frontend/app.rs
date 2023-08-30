@@ -104,6 +104,13 @@ impl App {
         execute!(stdout, EnterAlternateScreen);
         let terminal = Terminal::new(CrosstermBackend::new(stdout)).unwrap();
 
+        // Log comes with help message
+        let mut log = Log::default();
+        log.log(Message::new(
+            MessageType::Info,
+            String::from("Press F1 for help!"),
+        ));
+
         App {
             cpu: CpuState::default(),
             program: Program::default(),
@@ -123,7 +130,7 @@ impl App {
             keybuffer_widget_state: KeybufferWidgetState { focused: true },
 
             terminal,
-            message_log: Log::default(),
+            message_log: log,
             rightpanel_layout,
         }
     }
@@ -269,8 +276,10 @@ impl App {
             Ok(bytes) => {
                 self.reset_cpu();
                 self.program = Program::from(bytes.as_slice());
-                self.message_log
-                    .log(Message::new(MessageType::Info, format!("Loaded '{}'", path)));
+                self.message_log.log(Message::new(
+                    MessageType::Info,
+                    format!("Loaded '{}'", path),
+                ));
                 true
             }
         }
