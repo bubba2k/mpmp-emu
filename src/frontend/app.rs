@@ -2,6 +2,7 @@ use ratatui::prelude::{Constraint, CrosstermBackend, Direction, Layout};
 
 use std::error::Error;
 use std::io::{self, Stdout};
+use std::path::{Path, PathBuf};
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -266,6 +267,7 @@ impl App {
                 false
             }
             Ok(bytes) => {
+                self.reset_cpu();
                 self.program = Program::from(bytes.as_slice());
                 self.message_log
                     .log(Message::new(MessageType::Info, format!("Loaded {}", path)));
@@ -361,6 +363,20 @@ impl App {
             }
             KeyCode::F(1) => {
                 self.help_screen();
+                true
+            }
+            KeyCode::F(2) => {
+                let path_opt = self.prompt::<PathBuf>("Load file:");
+
+                match path_opt {
+                    None => {}
+                    Some(path) => match path.to_str() {
+                        None => {}
+                        Some(path_str) => {
+                            self.try_load_program(String::from(path_str));
+                        }
+                    },
+                }
                 true
             }
             KeyCode::F(3) => {
