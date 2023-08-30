@@ -188,6 +188,25 @@ impl App {
             .unwrap();
     }
 
+    fn help_screen(&mut self) {
+        loop {
+            let help_screen = HelpScreenWidget::default();
+
+            self.terminal
+                .draw(|frame| frame.render_widget(help_screen, frame.size()))
+                .unwrap();
+
+            if event::poll(Duration::from_millis(500)).unwrap() {
+                if let crossterm::event::Event::Key(key) = event::read().unwrap() {
+                    match key.code {
+                        KeyCode::Esc => break,
+                        _ => {}
+                    }
+                }
+            }
+        }
+    }
+
     fn prompt<T: FromStr>(&mut self, prompt_text: &str) -> Option<T> {
         let mut input_buffer = String::new();
 
@@ -213,7 +232,7 @@ impl App {
                 .draw(|frame| frame.render_widget(prompt_widget, area))
                 .unwrap();
 
-            if event::poll(Duration::from_millis(0)).unwrap() {
+            if event::poll(Duration::from_millis(500)).unwrap() {
                 if let crossterm::event::Event::Key(key) = event::read().unwrap() {
                     match key.code {
                         KeyCode::Char(c) => input_buffer.push(c),
@@ -340,6 +359,10 @@ impl App {
                 self.ui_mode.previous();
                 true
             }
+            KeyCode::F(1) => {
+                self.help_screen();
+                true
+            }
             KeyCode::F(3) => {
                 self.reset_cpu();
                 self.message_log
@@ -370,7 +393,7 @@ impl App {
 
     fn handle_input(&mut self) {
         // Event handling
-        if event::poll(Duration::from_millis(0)).unwrap() {
+        if event::poll(Duration::from_millis(100)).unwrap() {
             if let crossterm::event::Event::Key(key) = event::read().unwrap() {
                 // General input (always applicable), these are handled by the below
                 // call and we return right away if the input was consumed
