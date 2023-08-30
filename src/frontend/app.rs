@@ -262,7 +262,7 @@ impl App {
             Err(_) => {
                 self.message_log.log(Message::new(
                     MessageType::Error,
-                    format!("Failed loading {}", path),
+                    format!("Failed to load '{}'", path),
                 ));
                 false
             }
@@ -270,7 +270,7 @@ impl App {
                 self.reset_cpu();
                 self.program = Program::from(bytes.as_slice());
                 self.message_log
-                    .log(Message::new(MessageType::Info, format!("Loaded {}", path)));
+                    .log(Message::new(MessageType::Info, format!("Loaded '{}'", path)));
                 true
             }
         }
@@ -409,7 +409,7 @@ impl App {
 
     fn handle_input(&mut self) {
         // Event handling
-        if event::poll(Duration::from_millis(100)).unwrap() {
+        if event::poll(Duration::from_millis(20)).unwrap() {
             if let crossterm::event::Event::Key(key) = event::read().unwrap() {
                 // General input (always applicable), these are handled by the below
                 // call and we return right away if the input was consumed

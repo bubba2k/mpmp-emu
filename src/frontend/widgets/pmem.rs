@@ -56,6 +56,19 @@ impl<'a> StatefulWidget for PmemTableWidget<'a> {
     type State = PmemTableState;
 
     fn render(self, area: Rect, buf: &mut Buffer, state: &mut Self::State) {
+        // If program is empty
+        if self.program.operations.len() == 0 {
+            let block = Block::default()
+                .title(" Program Memory ")
+                .title_alignment(Alignment::Center)
+                .borders(Borders::ALL)
+                .border_type(BorderType::Plain);
+
+            block.render(area, buf);
+
+            return;
+        }
+
         // Clamp the selection index
         state.selected = state
             .selected

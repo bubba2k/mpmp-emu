@@ -18,14 +18,13 @@ use std::env;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
-    let default_path = "helpers/hex/tty_test.hex";
 
     let mut app = App::new();
-    if args.len() < 2 {
-        app.try_load_program(String::from(default_path));
-    } else {
+
+    if args.len() == 2 {
         app.try_load_program(args[1].clone());
     }
+
     app.run();
     app.quit().expect("Quitting should work");
 }
