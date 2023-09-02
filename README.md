@@ -1,6 +1,6 @@
 # MPMP Emulator
 TUI emulator and debugger for a custom 16-bit CPU previously designed at HTWK Leipzig "MPMP" course.
-
+![Alt text](screenshot.png?raw=true "Screenshot")
 ## Build
 Use rustup (https://www.rust-lang.org/tools/install) or use your systems package manager to install a Rust tool chain. Clone the repo, enter the root directory and do:
 
