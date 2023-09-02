@@ -1,6 +1,7 @@
 use ratatui::prelude::{Alignment, Constraint};
-use ratatui::style::Stylize;
-use ratatui::widgets::{Block, BorderType, Borders, Cell, Row, Table, Widget};
+use ratatui::style::{Style, Stylize};
+use ratatui::text::Line;
+use ratatui::widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table, Widget, Wrap};
 
 pub struct PromptWidget<'a> {
     input_buffer: &'a str,
@@ -9,13 +10,12 @@ pub struct PromptWidget<'a> {
 
 impl<'a> Widget for PromptWidget<'a> {
     fn render(self, area: ratatui::prelude::Rect, buf: &mut ratatui::prelude::Buffer) {
-        let table = Table::new([
-            Row::new([Cell::from(self.prompt_text)]).light_blue(),
-            Row::new([Cell::from(self.input_buffer)]),
-        ])
-        .column_spacing(1)
-        .widths([Constraint::Percentage(100)].as_ref())
-        .block(
+        let text = vec![
+            Line::styled(self.prompt_text, Style::default().light_blue()),
+            Line::styled(self.input_buffer, Style::default()),
+        ];
+
+        let paragraph = Paragraph::new(text).wrap(Wrap { trim: false }).block(
             Block::default()
                 .title(" Prompt ")
                 .title_alignment(Alignment::Center)
@@ -23,7 +23,7 @@ impl<'a> Widget for PromptWidget<'a> {
                 .border_type(BorderType::Double),
         );
 
-        Widget::render(table, area, buf)
+        Widget::render(paragraph, area, buf)
     }
 }
 
