@@ -208,6 +208,7 @@ impl App {
                 if let crossterm::event::Event::Key(key) = event::read().unwrap() {
                     match key.code {
                         KeyCode::Esc => break,
+                        KeyCode::F(1) => break,
                         _ => {}
                     }
                 }
