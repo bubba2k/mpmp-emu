@@ -1,6 +1,6 @@
 use ratatui::prelude::{Alignment, Buffer, Rect};
 
-use ratatui::widgets::{Block, Borders, Paragraph, Widget, Wrap};
+use ratatui::widgets::{Block, Borders, Paragraph, Widget, Wrap, Padding};
 
 pub struct TerminalWidget<'a> {
     buffer: &'a String,
@@ -20,7 +20,7 @@ impl<'a> Widget for TerminalWidget<'a> {
         let paragraph = Paragraph::new((*self.buffer).clone())
             .wrap(Wrap { trim: false })
             .block(
-                Block::new()
+                Block::new().padding(Padding{left:1, right:1, top: 0, bottom: 0})
                     .title(" Output Buffer ")
                     .title_alignment(Alignment::Center)
                     .borders(Borders::ALL),
