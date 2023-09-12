@@ -142,7 +142,12 @@ impl Operation {
                     )
                 }
                 LoadSource::RAM { address_register } => {
-                    format!("{} %reg{}", self.get_assembly_opname(), *address_register)
+                    format!(
+                        "{} %reg{} %reg{}",
+                        self.get_assembly_opname(),
+                        *target_register,
+                        *address_register
+                    )
                 }
             },
             Store {
