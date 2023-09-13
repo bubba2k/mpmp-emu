@@ -376,7 +376,7 @@ impl App {
                 true
             }
             KeyCode::F(2) => {
-                let path_opt = self.prompt::<PathBuf>("Load file:");
+                let path_opt = self.prompt::<PathBuf>("Enter file path:");
 
                 match path_opt {
                     None => {}
