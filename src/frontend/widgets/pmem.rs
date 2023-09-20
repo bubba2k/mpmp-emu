@@ -13,8 +13,6 @@ pub struct PmemTableWidget<'a> {
 pub struct PmemTableState {
     pub selected: u32,
     pub viewport_begin: u32,
-    pub viewport_end: u32,
-    pub max_visible_lines: u32,
     pub focus_executing: bool, // True if table should center around executing instruction
     pub is_focussed: bool,
 }
@@ -22,10 +20,8 @@ pub struct PmemTableState {
 impl Default for PmemTableState {
     fn default() -> Self {
         PmemTableState {
-            selected: 10,
+            selected: 0,
             viewport_begin: 0,
-            viewport_end: 24,
-            max_visible_lines: 24,
             focus_executing: true,
             is_focussed: false,
         }
@@ -34,10 +30,6 @@ impl Default for PmemTableState {
 
 impl PmemTableState {
     pub fn scroll(&mut self, offset: i32) {
-        let viewport_begin_i32 = self.viewport_begin as i32;
-        self.viewport_begin = viewport_begin_i32.saturating_add(offset).clamp(0, i32::MAX) as u32;
-        self.viewport_end = self.viewport_begin + self.max_visible_lines;
-
         let selected_i32 = self.selected as i32;
         self.selected = selected_i32.saturating_add(offset).clamp(0, i32::MAX) as u32;
     }
@@ -69,6 +61,11 @@ impl<'a> StatefulWidget for PmemTableWidget<'a> {
             return;
         }
 
+        // Check how many lines we can render
+        let visible_lines = (area.height - 2) as u32; // Subtract 2 for the block borders
+        let mut viewport_end = state.viewport_begin + visible_lines;
+        let scroll_offset = visible_lines / 5;
+
         // Clamp the selection index
         state.selected = state
             .selected
@@ -81,36 +78,36 @@ impl<'a> StatefulWidget for PmemTableWidget<'a> {
 
             let program_counter_u32 = *self.program_counter as u32;
             // Program counter outside viewport - this can happen during jumps
-            if !(state.viewport_begin..state.viewport_end).contains(&program_counter_u32) {
+            if !(state.viewport_begin..viewport_end).contains(&program_counter_u32) {
                 state.viewport_begin = program_counter_u32.saturating_sub(4);
             }
             // Program counter near top
-            else if program_counter_u32 <= state.viewport_begin + 10 {
+            else if program_counter_u32 <= state.viewport_begin + scroll_offset {
                 state.viewport_begin = state.viewport_begin.saturating_sub(1);
             }
             // Program counter near bottom
-            else if program_counter_u32 >= state.viewport_end - 10 {
+            else if program_counter_u32 >= viewport_end - scroll_offset {
                 state.viewport_begin = state.viewport_begin.saturating_add(1);
             }
 
-            state.viewport_end = state.viewport_begin.saturating_add(state.max_visible_lines);
+            viewport_end = state.viewport_begin + visible_lines;
         } else {
             // Center the viewport around selected
 
             // Program counter outside viewport - this can happen during jumps
-            if !(state.viewport_begin..state.viewport_end).contains(&state.selected) {
+            if !(state.viewport_begin..viewport_end).contains(&state.selected) {
                 state.viewport_begin = state.selected.saturating_sub(4);
             }
             // Program counter near top
-            else if state.selected <= state.viewport_begin + 10 {
+            else if state.selected <= state.viewport_begin + scroll_offset {
                 state.viewport_begin = state.viewport_begin.saturating_sub(1);
             }
             // Program counter near bottom
-            else if state.selected >= state.viewport_end - 10 {
+            else if state.selected >= viewport_end - scroll_offset {
                 state.viewport_begin = state.viewport_begin.saturating_add(1);
             }
 
-            state.viewport_end = state.viewport_begin.saturating_add(state.max_visible_lines);
+            viewport_end = state.viewport_begin + visible_lines;
         }
 
         // Create the empty row vector to be populated
@@ -120,9 +117,7 @@ impl<'a> StatefulWidget for PmemTableWidget<'a> {
         for i in state
             .viewport_begin
             .clamp(0, self.program.operations.len() as u32)
-            ..state
-                .viewport_end
-                .clamp(0, self.program.operations.len() as u32)
+            ..viewport_end.clamp(0, self.program.operations.len() as u32)
         {
             let mut cells = Vec::new();
 

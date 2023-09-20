@@ -44,21 +44,21 @@ impl<'a> StatefulWidget for RegistersDisplayWidget<'a> {
 
         // Build the rows
         rows.push(Row::new(vec![
-            Cell::from("%reg0").blue(),
+            Cell::from("reg0").blue(),
             Cell::from(state.get_number_repr(self.registers_ref[0])),
             Cell::from("pc").magenta(),
             Cell::from(state.get_number_repr(*self.pcounter_ref)),
         ]));
 
         rows.push(Row::new(vec![
-            Cell::from("%reg1").blue(),
+            Cell::from("reg1").blue(),
             Cell::from(state.get_number_repr(self.registers_ref[1])),
             Cell::from("zero").green(),
             Cell::from(format!("{}", self.flags_ref.zero)),
         ]));
 
         rows.push(Row::new(vec![
-            Cell::from("%reg2").blue(),
+            Cell::from("reg2").blue(),
             Cell::from(state.get_number_repr(self.registers_ref[2])),
             Cell::from("carry").green(),
             Cell::from(format!("{}", self.flags_ref.carry)),
@@ -68,7 +68,7 @@ impl<'a> StatefulWidget for RegistersDisplayWidget<'a> {
             .into_iter()
             .map(|i| {
                 Row::new(vec![
-                    Cell::from(format!("%reg{}", i)).blue(),
+                    Cell::from(format!("reg{}", i)).blue(),
                     Cell::from(state.get_number_repr(self.registers_ref[i])),
                 ])
             })
