@@ -231,7 +231,10 @@ impl CpuState {
                     0x8007 => self.registers[*target_register] = self.rng_state,
                     // Else perform default load from RAM
                     _ => {
-                        self.registers[*target_register] = self.ram[address as usize];
+                        self.registers[*target_register] = match address < 0x8000 {
+                            true => self.ram[address as usize],
+                            false => 0,
+                        }
                     }
                 }
             }
