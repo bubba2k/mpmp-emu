@@ -8,7 +8,7 @@ pub struct Flags {
     pub zero: bool,
 }
 
-type Registers = [u16; 6]; // the 6 registers
+type Registers = [u16; 8]; // the 6 registers
 
 pub const RAM_SIZE: usize = 32_768; // 2^15
 type Ram = [u16; RAM_SIZE];
@@ -61,7 +61,7 @@ pub struct CpuState {
 impl Default for CpuState {
     fn default() -> Self {
         CpuState {
-            registers: [0u16; 6],
+            registers: [0u16; 8],
             flags: Flags {
                 carry: false,
                 overflow: false,

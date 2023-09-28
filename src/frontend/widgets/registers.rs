@@ -7,7 +7,7 @@ use crate::backend::runtime::{CpuState, Flags};
 
 pub struct RegistersDisplayWidget<'a> {
     pcounter_ref: &'a u16,
-    registers_ref: &'a [u16; 6],
+    registers_ref: &'a [u16; 8],
     flags_ref: &'a Flags,
 }
 
@@ -42,39 +42,33 @@ impl<'a> StatefulWidget for RegistersDisplayWidget<'a> {
     ) {
         let mut rows = Vec::new();
 
-        // Build the rows
+        // Rows containing the zero and carry flag and PC
         rows.push(Row::new(vec![
-            Cell::from("reg0").blue(),
-            Cell::from(state.get_number_repr(self.registers_ref[0])),
+            Cell::from("zero").green(),
+            Cell::from(format!("{}", self.flags_ref.zero)),
             Cell::from("pc").magenta(),
             Cell::from(state.get_number_repr(*self.pcounter_ref)),
         ]));
 
         rows.push(Row::new(vec![
-            Cell::from("reg1").blue(),
-            Cell::from(state.get_number_repr(self.registers_ref[1])),
-            Cell::from("zero").green(),
-            Cell::from(format!("{}", self.flags_ref.zero)),
-        ]));
-
-        rows.push(Row::new(vec![
-            Cell::from("reg2").blue(),
-            Cell::from(state.get_number_repr(self.registers_ref[2])),
             Cell::from("carry").green(),
             Cell::from(format!("{}", self.flags_ref.carry)),
         ]));
 
-        let mut remaining_rows = (3..6)
+        // Build the 4 register rows
+        let mut register_rows = (0..4)
             .into_iter()
             .map(|i| {
                 Row::new(vec![
                     Cell::from(format!("reg{}", i)).blue(),
                     Cell::from(state.get_number_repr(self.registers_ref[i])),
+                    Cell::from(format!("reg{}", i + 4)).blue(),
+                    Cell::from(state.get_number_repr(self.registers_ref[i + 4])),
                 ])
             })
             .collect();
 
-        rows.append(&mut remaining_rows);
+        rows.append(&mut register_rows);
 
         let table = Table::new(rows)
             .column_spacing(1)
