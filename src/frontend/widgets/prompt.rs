@@ -1,7 +1,7 @@
-use ratatui::prelude::{Alignment, Constraint};
+use ratatui::prelude::{Alignment};
 use ratatui::style::{Style, Stylize};
 use ratatui::text::Line;
-use ratatui::widgets::{Block, BorderType, Borders, Cell, Paragraph, Row, Table, Widget, Wrap};
+use ratatui::widgets::{Block, BorderType, Borders, Paragraph, Widget, Wrap};
 
 pub struct PromptWidget<'a> {
     input_buffer: &'a str,

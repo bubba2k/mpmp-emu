@@ -2,7 +2,7 @@ use ratatui::prelude::{Constraint, CrosstermBackend, Direction, Layout};
 
 use std::error::Error;
 use std::io::{self, Stdout};
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::str::FromStr;
 use std::time::Duration;
 
@@ -100,8 +100,8 @@ impl App {
             .constraints([Constraint::Percentage(70), Constraint::Percentage(30)].as_ref());
 
         let mut stdout = io::stdout();
-        enable_raw_mode();
-        execute!(stdout, EnterAlternateScreen);
+        let _ = enable_raw_mode();
+        let _ = execute!(stdout, EnterAlternateScreen);
         let terminal = Terminal::new(CrosstermBackend::new(stdout)).unwrap();
 
         // Log comes with help message

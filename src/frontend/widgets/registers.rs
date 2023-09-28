@@ -1,4 +1,4 @@
-use ratatui::prelude::{Alignment, Color, Constraint};
+use ratatui::prelude::{Alignment, Constraint};
 
 use ratatui::style::Stylize;
 use ratatui::widgets::{Block, Borders, Cell, Row, StatefulWidget, Table, Widget};
