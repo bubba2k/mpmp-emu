@@ -1,15 +1,15 @@
 # MPMP Emulator
-TUI emulator and debugger for a custom 16-bit CPU previously designed at HTWK Leipzig "MPMP" course.
+TUI emulator and debugger for a custom 16-bit CPU previously designed (and originally simulated in Logisim) at HTWK Leipzig "MPMP" course.
 ![Alt text](screenshot.png?raw=true "Screenshot")
-## Build
-Use rustup (https://www.rust-lang.org/tools/install) or use your systems package manager to install a Rust tool chain. Clone the repo, enter the root directory and do:
 
-    cargo build --release
-or
-
-    cargo run --release
-    
-The executable will be located at `target/release/mpmp-emu`.
+## Features
+- Program Memory / RAM browser
+- Breakpoints
+- Built-in disassembler
+- Stepwise execution
+- User-defined execution delay
+- Overview of all registers and flags
+- Fast keyboard oriented UI/UX
 
 ## Usage
 
@@ -31,4 +31,17 @@ This software is designed to work with the masm assembler (https://gitlab.com/mo
 
 
 See the `helpers` directory for examples in assembly code and their machine code counter parts.
+
+
+## Build
+Use rustup (https://www.rust-lang.org/tools/install) or use your systems package manager to install a Rust tool chain. Clone the repo, enter the root directory and do:
+
+    cargo build --release
+or
+
+    cargo run --release
+    
+The executable will be located at `target/release/mpmp-emu`.
+
+
 
