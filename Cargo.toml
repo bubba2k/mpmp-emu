@@ -18,7 +18,7 @@ rand = "0.8"
 
 # For TUI
 ratatui = { version = "0.22.0", features = ["all-widgets"] }
-crossterm = "0.26"
+crossterm = "0.28"
 
 # For fiddling with timestamps
 chrono = "0.4"
